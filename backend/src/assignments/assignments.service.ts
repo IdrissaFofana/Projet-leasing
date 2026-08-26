@@ -16,6 +16,7 @@ import {
   AssignmentQueryDto,
   CreateAffectationDto,
   CreateKitDto,
+  UpdateAffectationDto,
 } from './dto/assignment.dto';
 
 const KIT_COULEURS: CouleurToner[] = [
@@ -147,6 +148,118 @@ export class AssignmentsService {
 
       return created;
     });
+  }
+
+  async update(id: string, dto: UpdateAffectationDto) {
+    const current = await this.findOne(id);
+    const nextModeleId = dto.modeleId ?? current.modeleId;
+    const nextImprimanteId = dto.imprimanteId ?? current.imprimanteId;
+
+    if (dto.imprimanteId) await this.ensurePrinter(dto.imprimanteId);
+    if (dto.modeleId) await this.ensureModele(dto.modeleId);
+
+    const replaceLignes = dto.lignes !== undefined;
+    const nouvellesLignes = replaceLignes ? this.normalizeLignes(dto.lignes!) : null;
+
+    return this.prisma.$transaction(async (tx) => {
+      const skuIds = new Set<string>();
+      for (const l of current.lignes) {
+        if (l.skuId) skuIds.add(l.skuId);
+      }
+
+      if (nouvellesLignes) {
+        // Vérifier stock comme si les anciennes sorties étaient déjà annulées
+        for (const ligne of nouvellesLignes) {
+          const sku = await tx.cartoucheSku.upsert({
+            where: {
+              modeleId_couleur: {
+                modeleId: nextModeleId,
+                couleur: ligne.couleur,
+              },
+            },
+            update: {},
+            create: { modeleId: nextModeleId, couleur: ligne.couleur },
+          });
+          const oldSame = current.lignes
+            .filter((l) => l.skuId === sku.id)
+            .reduce((s, l) => s + l.qte, 0);
+          const dispo = sku.qteRestante + oldSame;
+          if (dispo < ligne.qte) {
+            throw new BadRequestException(
+              `Stock insuffisant pour ${ligne.couleur} (dispo ${dispo}, demandé ${ligne.qte})`,
+            );
+          }
+          skuIds.add(sku.id);
+        }
+
+        await tx.affectationLigne.deleteMany({ where: { affectationId: id } });
+        await tx.affectationLigne.createMany({
+          data: await Promise.all(
+            nouvellesLignes.map(async (ligne) => {
+              const sku = await tx.cartoucheSku.findUniqueOrThrow({
+                where: {
+                  modeleId_couleur: {
+                    modeleId: nextModeleId,
+                    couleur: ligne.couleur,
+                  },
+                },
+              });
+              return {
+                affectationId: id,
+                couleur: ligne.couleur,
+                qte: ligne.qte,
+                skuId: sku.id,
+              };
+            }),
+          ),
+        });
+      }
+
+      await tx.affectation.update({
+        where: { id },
+        data: {
+          datePose: dto.datePose ? new Date(dto.datePose) : undefined,
+          heurePose:
+            dto.heurePose === undefined
+              ? undefined
+              : dto.heurePose === null
+                ? null
+                : this.parseHeure(dto.heurePose),
+          imprimanteId: nextImprimanteId,
+          modeleId: nextModeleId,
+          agentId: dto.agentId === undefined ? undefined : dto.agentId,
+          motif: dto.motif === undefined ? undefined : dto.motif,
+          statutPose: dto.statutPose,
+          observations:
+            dto.observations === undefined ? undefined : dto.observations,
+        },
+      });
+
+      for (const skuId of skuIds) {
+        await this.stock.recalculer(skuId, tx);
+      }
+
+      return tx.affectation.findUniqueOrThrow({
+        where: { id },
+        include: affectationInclude,
+      });
+    });
+  }
+
+  async remove(id: string) {
+    const current = await this.findOne(id);
+    const skuIds = [
+      ...new Set(current.lignes.map((l) => l.skuId).filter((x): x is string => !!x)),
+    ];
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.affectation.delete({ where: { id } });
+      for (const skuId of skuIds) {
+        await this.stock.recalculer(skuId, tx);
+      }
+    });
+
+    return { ok: true, id, code: current.code };
   }
 
   private normalizeLignes(lignes: CreateAffectationDto['lignes']) {

@@ -48,9 +48,12 @@ async function bootstrap() {
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, swagger));
 
   const port = Number(process.env.PORT ?? 3001);
-  await app.listen(port);
+  // 0.0.0.0 = accessible depuis le réseau local (pas seulement localhost)
+  await app.listen(port, '0.0.0.0');
   // eslint-disable-next-line no-console
   console.log(`API running on http://localhost:${port}/api`);
+  // eslint-disable-next-line no-console
+  console.log(`API LAN: http://<votre-ip>:${port}/api`);
   // eslint-disable-next-line no-console
   console.log(`Swagger on http://localhost:${port}/api/docs`);
 }

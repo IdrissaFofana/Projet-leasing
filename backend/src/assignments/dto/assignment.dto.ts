@@ -138,3 +138,53 @@ export class AssignmentQueryDto {
   @IsString()
   to?: string;
 }
+
+export class UpdateAffectationDto {
+  @ApiPropertyOptional({ example: '2026-08-24' })
+  @IsOptional()
+  @IsDateString()
+  datePose?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  heurePose?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  imprimanteId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  modeleId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  agentId?: string | null;
+
+  @ApiPropertyOptional({ enum: MotifAffectation })
+  @IsOptional()
+  @IsEnum(MotifAffectation)
+  motif?: MotifAffectation | null;
+
+  @ApiPropertyOptional({ enum: StatutPose })
+  @IsOptional()
+  @IsEnum(StatutPose)
+  statutPose?: StatutPose;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  observations?: string | null;
+
+  @ApiPropertyOptional({ type: [AffectationLigneDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => AffectationLigneDto)
+  lignes?: AffectationLigneDto[];
+}

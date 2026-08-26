@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RoleUtilisateur } from '@prisma/client';
 import { RequirePermission } from '../common/decorators/current-user.decorator';
@@ -11,6 +21,7 @@ import {
   AssignmentQueryDto,
   CreateAffectationDto,
   CreateKitDto,
+  UpdateAffectationDto,
 } from './dto/assignment.dto';
 
 const readRoles = [
@@ -19,6 +30,8 @@ const readRoles = [
   RoleUtilisateur.FACTURATION,
   RoleUtilisateur.LECTURE,
 ] as const;
+
+const writeRoles = [RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN] as const;
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
@@ -36,7 +49,7 @@ export class AssignmentsController {
 
   @ApiTags('kits-cmyk')
   @Post('kit')
-  @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
+  @Roles(...writeRoles)
   createKit(@Body() dto: CreateKitDto) {
     return this.assignments.createKit(dto);
   }
@@ -50,8 +63,22 @@ export class AssignmentsController {
 
   @ApiTags('affectations')
   @Post()
-  @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
+  @Roles(...writeRoles)
   create(@Body() dto: CreateAffectationDto) {
     return this.assignments.create(dto);
+  }
+
+  @ApiTags('affectations')
+  @Patch(':id')
+  @Roles(...writeRoles)
+  update(@Param('id') id: string, @Body() dto: UpdateAffectationDto) {
+    return this.assignments.update(id, dto);
+  }
+
+  @ApiTags('affectations')
+  @Delete(':id')
+  @Roles(...writeRoles)
+  remove(@Param('id') id: string) {
+    return this.assignments.remove(id);
   }
 }
