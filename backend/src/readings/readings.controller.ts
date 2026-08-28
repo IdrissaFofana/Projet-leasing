@@ -50,7 +50,6 @@ const writeRoles = [
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('readings')
 @Controller('readings')
 export class ReadingsController {
   constructor(
@@ -58,6 +57,7 @@ export class ReadingsController {
     private readonly exports: ReadingsExportService,
   ) {}
 
+  @RequirePermission('readings', 'read')
   @ApiTags('releves')
   @Get()
   @Roles(...readRoles)
@@ -65,6 +65,7 @@ export class ReadingsController {
     return this.readings.findAll(query);
   }
 
+  @RequirePermission('readings', 'read')
   @ApiTags('vue-mensuelle')
   @Get('monthly-view')
   @Roles(...readRoles)
@@ -72,6 +73,7 @@ export class ReadingsController {
     return this.readings.monthlyView(query);
   }
 
+  @RequirePermission('readings', 'read')
   @ApiTags('vue-mensuelle')
   @Get('matrix')
   @Roles(...readRoles)
@@ -79,6 +81,7 @@ export class ReadingsController {
     return this.readings.matrix(query.moisDebut, query.moisFin);
   }
 
+  @RequirePermission('readings', 'read')
   @ApiTags('exports')
   @Get('export')
   @Roles(...readRoles)
@@ -97,6 +100,7 @@ export class ReadingsController {
     });
   }
 
+  @RequirePermission('readings', 'read')
   @ApiTags('controle-releves')
   @Get('control')
   @Roles(...readRoles)
@@ -104,6 +108,7 @@ export class ReadingsController {
     return this.readings.control(mois);
   }
 
+  @RequirePermission('readings', 'read')
   @ApiTags('controle-releves')
   @Get('control/export')
   @Roles(...readRoles)
@@ -111,6 +116,7 @@ export class ReadingsController {
     return this.readings.controlExportCsv(mois);
   }
 
+  @RequirePermission('readings', 'read')
   @ApiTags('releves')
   @Get('previous')
   @Roles(...readRoles)
@@ -118,6 +124,7 @@ export class ReadingsController {
     return this.readings.previous(query);
   }
 
+  @RequirePermission('readings', 'read')
   @ApiTags('releves')
   @Get(':id')
   @Roles(...readRoles)
@@ -125,6 +132,7 @@ export class ReadingsController {
     return this.readings.findOne(id);
   }
 
+  @RequirePermission('readings', 'read')
   @ApiTags('releves')
   @Get(':id/rapport')
   @Roles(...readRoles)
@@ -132,6 +140,7 @@ export class ReadingsController {
     return this.readings.downloadRapport(id);
   }
 
+  @RequirePermission('readings', 'create')
   @ApiTags('releves')
   @Post(':id/rapport')
   @Roles(...writeRoles)
@@ -155,6 +164,7 @@ export class ReadingsController {
     return this.readings.uploadRapport(id, file);
   }
 
+  @RequirePermission('readings', 'create')
   @ApiTags('releves')
   @Post()
   @Roles(...writeRoles)
@@ -162,6 +172,7 @@ export class ReadingsController {
     return this.readings.create(dto, user.id);
   }
 
+  @RequirePermission('readings', 'create')
   @ApiTags('releves')
   @Post('import')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.FACTURATION)
@@ -169,6 +180,7 @@ export class ReadingsController {
     return this.readings.importBatch(dto, user.id);
   }
 
+  @RequirePermission('readings', 'update')
   @ApiTags('releves')
   @Patch(':id')
   @Roles(...writeRoles)
@@ -180,6 +192,7 @@ export class ReadingsController {
     return this.readings.update(id, dto, user.id);
   }
 
+  @RequirePermission('readings', 'create')
   @ApiTags('controle-releves')
   @Post(':id/accept-anomaly')
   @Roles(...writeRoles)
@@ -191,6 +204,7 @@ export class ReadingsController {
     return this.readings.acceptAnomaly(id, dto, user.id);
   }
 
+  @RequirePermission('readings', 'create')
   @ApiTags('controle-releves')
   @Post(':id/control')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.FACTURATION, RoleUtilisateur.TECHNICIEN)
@@ -198,6 +212,7 @@ export class ReadingsController {
     return this.readings.markControle(id, user.id);
   }
 
+  @RequirePermission('readings', 'create')
   @ApiTags('controle-releves')
   @Post(':id/validate')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.FACTURATION)

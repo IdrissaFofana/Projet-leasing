@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import type { AuditEntry, ManagedUser } from '@/lib/types';
 
@@ -95,7 +96,7 @@ export default function TracabilitePage() {
         </p>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
+      <PageFeedback error={error} onDismiss={() => setError(null)} />
 
       <form className="panel" style={{ marginBottom: '1rem' }} onSubmit={onFilter}>
         <div className="form-grid">

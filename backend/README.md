@@ -63,15 +63,26 @@ Par défaut, le script lit `Projet de suivie/Gestion cartouche et imprimante.xls
 2. Stock : solde recalculé uniquement via service (entrées / affectations)
 3. Facture : snapshot tarifs ; clôture bloque les écritures du mois
 
+## Stock produits (hors leasing)
+
+Module séparé du stock cartouches CMYK (réceptions / livraisons).
+
+```bash
+npm run import:stock-produits
+```
+
+API : `/api/stock-produits` — permission module `stock_produits`.
+
 ## Structure
 
 ```
 src/
-  auth/ users/ referentiels/ printers/ stock/
+  auth/ users/ referentiels/ printers/ stock/ stock-produits/
   assignments/ readings/ campaigns/ billing/
   maintenance/ dashboard/ audit/
   common/domain/calculs.ts
 prisma/
 scripts/import-excel.ts
+scripts/import-stock-produits.ts
 docs/
 ```

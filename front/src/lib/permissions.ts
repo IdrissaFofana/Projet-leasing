@@ -4,6 +4,7 @@ export const MODULES = [
   'dashboard',
   'printers',
   'stock',
+  'stock_produits',
   'assignments',
   'readings',
   'campaigns',
@@ -16,10 +17,16 @@ export const MODULES = [
 
 export type ModulePermission = (typeof MODULES)[number];
 
+export const CRUD_ACTIONS = ['read', 'create', 'update', 'delete'] as const;
+export type CrudAction = (typeof CRUD_ACTIONS)[number];
+
+export type PermissionKey = `${ModulePermission}:${CrudAction}`;
+
 export const MODULE_LABELS: Record<ModulePermission, string> = {
   dashboard: 'Tableau de bord',
-  printers: 'Imprimantes',
-  stock: 'Stock',
+  printers: 'Copieurs',
+  stock: 'Stock cartouches (leasing)',
+  stock_produits: 'Stock produits',
   assignments: 'Affectations',
   readings: 'Relevés',
   campaigns: 'Campagnes',
@@ -30,47 +37,139 @@ export const MODULE_LABELS: Record<ModulePermission, string> = {
   messages: 'Messagerie',
 };
 
-export const DEFAULT_PERMISSIONS_BY_ROLE: Record<RoleUtilisateur, ModulePermission[]> = {
-  ADMIN: [...MODULES],
-  TECHNICIEN: [
-    'dashboard',
-    'printers',
-    'stock',
-    'assignments',
-    'readings',
-    'campaigns',
-    'maintenance',
-    'messages',
-  ],
-  FACTURATION: [
-    'dashboard',
-    'printers',
-    'readings',
-    'campaigns',
-    'billing',
-    'messages',
-  ],
-  LECTURE: [
-    'dashboard',
-    'printers',
-    'stock',
-    'readings',
-    'campaigns',
-    'maintenance',
-    'messages',
-  ],
+export const ACTION_LABELS: Record<CrudAction, string> = {
+  read: 'Lecture',
+  create: 'Création',
+  update: 'Modification',
+  delete: 'Suppression',
 };
 
+export const MODULE_ACTIONS: Record<ModulePermission, readonly CrudAction[]> = {
+  dashboard: ['read'],
+  messages: ['read', 'create'],
+  printers: CRUD_ACTIONS,
+  stock: CRUD_ACTIONS,
+  stock_produits: CRUD_ACTIONS,
+  assignments: CRUD_ACTIONS,
+  readings: CRUD_ACTIONS,
+  campaigns: CRUD_ACTIONS,
+  billing: CRUD_ACTIONS,
+  maintenance: CRUD_ACTIONS,
+  referentiels: CRUD_ACTIONS,
+  users: CRUD_ACTIONS,
+};
+
+export function permissionKey(
+  module: ModulePermission,
+  action: CrudAction,
+): PermissionKey {
+  return `${module}:${action}`;
+}
+
+export function isValidPermissionKey(p: string): p is PermissionKey {
+  const [mod, act] = p.split(':');
+  return (
+    (MODULES as readonly string[]).includes(mod) &&
+    (CRUD_ACTIONS as readonly string[]).includes(act)
+  );
+}
+
+export function expandModulesToCrud(
+  modules: ModulePermission[],
+  actions: readonly CrudAction[] = CRUD_ACTIONS,
+): PermissionKey[] {
+  const out: PermissionKey[] = [];
+  for (const m of modules) {
+    for (const a of MODULE_ACTIONS[m]) {
+      if (actions.includes(a)) out.push(permissionKey(m, a));
+    }
+  }
+  return out;
+}
+
+export function normalizePermissions(raw: string[]): PermissionKey[] {
+  const out = new Set<PermissionKey>();
+  for (const p of raw) {
+    if (isValidPermissionKey(p)) {
+      out.add(p);
+      continue;
+    }
+    if ((MODULES as readonly string[]).includes(p)) {
+      for (const a of MODULE_ACTIONS[p as ModulePermission]) {
+        out.add(permissionKey(p as ModulePermission, a));
+      }
+    }
+  }
+  return [...out];
+}
+
+export const DEFAULT_CRUD_BY_ROLE: Record<RoleUtilisateur, PermissionKey[]> = {
+  ADMIN: expandModulesToCrud([...MODULES]),
+  TECHNICIEN: expandModulesToCrud(
+    [
+      'dashboard',
+      'printers',
+      'stock',
+      'stock_produits',
+      'assignments',
+      'readings',
+      'campaigns',
+      'maintenance',
+      'messages',
+    ],
+    ['read', 'create', 'update'],
+  ),
+  FACTURATION: [
+    ...expandModulesToCrud(
+      ['dashboard', 'printers', 'readings', 'campaigns', 'messages'],
+      ['read'],
+    ),
+    ...expandModulesToCrud(['billing', 'campaigns'], ['read', 'create', 'update']),
+  ],
+  LECTURE: expandModulesToCrud(
+    [
+      'dashboard',
+      'printers',
+      'stock',
+      'stock_produits',
+      'readings',
+      'campaigns',
+      'maintenance',
+      'messages',
+    ],
+    ['read'],
+  ),
+};
+
+export function resolveUserPermissions(
+  user: Pick<AuthUser, 'role' | 'permissions'>,
+): PermissionKey[] {
+  if (user.role === 'ADMIN') return expandModulesToCrud([...MODULES]);
+  if (user.permissions?.length) return normalizePermissions(user.permissions);
+  return DEFAULT_CRUD_BY_ROLE[user.role] ?? expandModulesToCrud(['dashboard'], ['read']);
+}
+
+export function userHasCrudPermission(
+  user: Pick<AuthUser, 'role' | 'permissions'> | null | undefined,
+  module: ModulePermission,
+  action: CrudAction,
+): boolean {
+  if (!user) return false;
+  if (user.role === 'ADMIN') return true;
+  const resolved = resolveUserPermissions(user);
+  return resolved.includes(permissionKey(module, action));
+}
+
+/** Accès page / module (lecture minimum). */
 export function userHasPermission(
   user: Pick<AuthUser, 'role' | 'permissions'> | null | undefined,
   module: ModulePermission,
 ): boolean {
-  if (!user) return false;
-  if (user.role === 'ADMIN') return true;
-  const list = user.permissions?.length
-    ? user.permissions
-    : DEFAULT_PERMISSIONS_BY_ROLE[user.role] ?? [];
-  return list.includes(module);
+  return userHasCrudPermission(user, module, 'read');
+}
+
+export function allPermissionKeys(): PermissionKey[] {
+  return expandModulesToCrud([...MODULES]);
 }
 
 /** Mappe une route front vers le module permission requis (null = accessible si connecté). */
@@ -84,6 +183,7 @@ export function permissionForPath(pathname: string): ModulePermission | null {
     { prefix: '/campagnes', module: 'campaigns' },
     { prefix: '/releves', module: 'readings' },
     { prefix: '/affectations', module: 'assignments' },
+    { prefix: '/stock-produits', module: 'stock_produits' },
     { prefix: '/stock', module: 'stock' },
     { prefix: '/imprimantes', module: 'printers' },
     { prefix: '/messagerie', module: 'messages' },

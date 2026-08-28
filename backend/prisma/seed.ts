@@ -1,6 +1,6 @@
 import { EntiteSequence, PrismaClient, RoleUtilisateur, TypeTarif } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { DEFAULT_PERMISSIONS_BY_ROLE, MODULES } from '../src/common/auth/permissions';
+import { allPermissionKeys, DEFAULT_CRUD_BY_ROLE } from '../src/common/auth/permissions';
 
 const prisma = new PrismaClient();
 
@@ -12,21 +12,21 @@ async function main() {
     libelle: string;
     permissions: string[];
   }> = [
-    { code: RoleUtilisateur.ADMIN, libelle: 'Administrateur', permissions: [...MODULES] },
+    { code: RoleUtilisateur.ADMIN, libelle: 'Administrateur', permissions: allPermissionKeys() },
     {
       code: RoleUtilisateur.TECHNICIEN,
       libelle: 'Technicien',
-      permissions: [...DEFAULT_PERMISSIONS_BY_ROLE.TECHNICIEN],
+      permissions: [...DEFAULT_CRUD_BY_ROLE.TECHNICIEN],
     },
     {
       code: RoleUtilisateur.FACTURATION,
       libelle: 'Facturation',
-      permissions: [...DEFAULT_PERMISSIONS_BY_ROLE.FACTURATION],
+      permissions: [...DEFAULT_CRUD_BY_ROLE.FACTURATION],
     },
     {
       code: RoleUtilisateur.LECTURE,
       libelle: 'Lecture',
-      permissions: [...DEFAULT_PERMISSIONS_BY_ROLE.LECTURE],
+      permissions: [...DEFAULT_CRUD_BY_ROLE.LECTURE],
     },
   ];
 
@@ -51,7 +51,7 @@ async function main() {
     where: { email: 'admin@leasing.local' },
     update: {
       mustChangePassword: false,
-      permissions: [...MODULES],
+      permissions: allPermissionKeys(),
       actif: true,
       roleMetierId: roleIds.ADMIN,
     },
@@ -61,7 +61,7 @@ async function main() {
       role: RoleUtilisateur.ADMIN,
       roleMetierId: roleIds.ADMIN,
       motDePasseHash: passwordHash,
-      permissions: [...MODULES],
+      permissions: allPermissionKeys(),
       mustChangePassword: false,
     },
   });
@@ -70,7 +70,7 @@ async function main() {
     where: { email: 'tech@leasing.local' },
     update: {
       mustChangePassword: false,
-      permissions: [...DEFAULT_PERMISSIONS_BY_ROLE.TECHNICIEN],
+      permissions: [...DEFAULT_CRUD_BY_ROLE.TECHNICIEN],
       actif: true,
       roleMetierId: roleIds.TECHNICIEN,
     },
@@ -80,7 +80,7 @@ async function main() {
       role: RoleUtilisateur.TECHNICIEN,
       roleMetierId: roleIds.TECHNICIEN,
       motDePasseHash: await bcrypt.hash('Tech123!', 10),
-      permissions: [...DEFAULT_PERMISSIONS_BY_ROLE.TECHNICIEN],
+      permissions: [...DEFAULT_CRUD_BY_ROLE.TECHNICIEN],
       mustChangePassword: false,
     },
   });

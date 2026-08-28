@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { api, ApiError } from '@/lib/api';
 import { formatMoney } from '@/lib/format';
 import type { FactureLigne, FacturePeriode } from '@/lib/types';
 
 export default function FactureDetailPage() {
+  const { confirm } = useFeedback();
   const params = useParams<{ mois: string }>();
   const mois = params.mois;
   const [periode, setPeriode] = useState<FacturePeriode | null>(null);
@@ -48,7 +51,15 @@ export default function FactureDetailPage() {
   }
 
   async function close() {
-    if (!confirm(`Clôturer définitivement ${mois} ?`)) return;
+    if (
+      !(await confirm({
+        title: 'Confirmation',
+        message: `Clôturer définitivement ${mois} ?`,
+        danger: true,
+        confirmLabel: 'Clôturer',
+      }))
+    )
+      return;
     setBusy(true);
     setError(null);
     try {
@@ -153,8 +164,14 @@ export default function FactureDetailPage() {
         </button>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       {periode ? (
         <div className="panel" style={{ marginBottom: '1rem' }}>
@@ -171,7 +188,7 @@ export default function FactureDetailPage() {
           <table className="data-table">
             <thead>
               <tr>
-                <SortTh label="Imprimante" sortKey="imprimante" activeKey={lignesSort.sortKey} direction={lignesSort.sortDir} onSort={lignesSort.toggle} />
+                <SortTh label="Copieur" sortKey="imprimante" activeKey={lignesSort.sortKey} direction={lignesSort.sortDir} onSort={lignesSort.toggle} />
                 <th>Localisation</th>
                 <SortTh label="Copies N" sortKey="copiesNb" activeKey={lignesSort.sortKey} direction={lignesSort.sortDir} onSort={lignesSort.toggle} align="right" />
                 <SortTh label="Copies C" sortKey="copiesCouleur" activeKey={lignesSort.sortKey} direction={lignesSort.sortDir} onSort={lignesSort.toggle} align="right" />

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { DataTableShell } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import { currentMois, formatDate } from '@/lib/format';
 import type { Imprimante, Maintenance } from '@/lib/types';
@@ -49,11 +50,11 @@ export default function QuotaPrinterDetailInner() {
         </p>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
+      <PageFeedback error={error} onDismiss={() => setError(null)} />
 
       {printer ? (
         <div className="panel" style={{ marginBottom: '1rem' }}>
-          <h2>Imprimante</h2>
+          <h2>Copieur</h2>
           <div className="form-grid">
             <div>
               Code : <strong className="mono">{printer.code}</strong>

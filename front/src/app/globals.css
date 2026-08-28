@@ -2940,6 +2940,35 @@ a {
   padding: 1rem;
 }
 
+.feedback-modal-root {
+  z-index: 1100;
+}
+
+.feedback-message {
+  margin: 0;
+  font-size: 0.98rem;
+  line-height: 1.45;
+  color: #374151;
+}
+
+.feedback-dialog.is-error .modal-eyebrow {
+  color: var(--esay-red, #e11d48);
+}
+
+.feedback-dialog.is-success .modal-eyebrow {
+  color: #1a8a5c;
+}
+
+.btn-modal-danger {
+  background: var(--esay-red, #e11d48);
+  color: #fff;
+  border: 0;
+}
+
+.btn-modal-danger:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
 .modal-backdrop {
   position: absolute;
   inset: 0;
@@ -4702,6 +4731,42 @@ a {
   border-color: rgba(0, 140, 167, 0.45);
   background: rgba(0, 140, 167, 0.06);
   box-shadow: inset 0 0 0 1px rgba(0, 140, 167, 0.12);
+}
+
+.perms-crud-wrap {
+  overflow-x: auto;
+  margin-top: 0.25rem;
+}
+
+.perms-crud-table {
+  min-width: 520px;
+  font-size: 0.88rem;
+}
+
+.perms-crud-table th,
+.perms-crud-table td {
+  vertical-align: middle;
+}
+
+.perms-crud-action-col {
+  text-align: center;
+  white-space: nowrap;
+  width: 5.5rem;
+}
+
+.perms-crud-check {
+  text-align: center;
+}
+
+.perms-crud-check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--esay-blue, #008ca7);
+}
+
+.perms-crud-empty {
+  text-align: center;
+  color: var(--muted, #9ca3af);
 }
 
 .perms-chip:hover {

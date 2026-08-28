@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { roleLabel, useLocale } from '@/lib/locale-context';
@@ -318,8 +319,14 @@ export default function ProfilPage() {
         </button>
       </nav>
 
-      {error && <p className="form-error">{error}</p>}
-      {ok && <p className="form-ok">{ok}</p>}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       {tab === 'infos' && (
         <form className="profile-panel" onSubmit={saveInfos}>

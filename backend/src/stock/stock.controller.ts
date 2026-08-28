@@ -28,17 +28,18 @@ const readRoles = [
 @ApiTags('modeles-cartouches')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('stock')
 @Controller('stock/modeles')
 export class StockModelesController {
   constructor(private readonly stock: StockService) {}
 
+  @RequirePermission('stock', 'read')
   @Get()
   @Roles(...readRoles)
   findAll() {
     return this.stock.findModeles();
   }
 
+  @RequirePermission('stock', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   create(@Body() dto: CreateModeleCartoucheDto) {
@@ -49,11 +50,11 @@ export class StockModelesController {
 @ApiTags('skus')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('stock')
 @Controller('stock/skus')
 export class StockSkusController {
   constructor(private readonly stock: StockService) {}
 
+  @RequirePermission('stock', 'read')
   @Get()
   @Roles(...readRoles)
   findAll(@Query() query: SkuQueryDto) {
@@ -64,35 +65,39 @@ export class StockSkusController {
 @ApiTags('entrees-stock')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('stock')
 @Controller('stock/entrees')
 export class StockEntreesController {
   constructor(private readonly stock: StockService) {}
 
+  @RequirePermission('stock', 'read')
   @Get()
   @Roles(...readRoles)
   findAll(@Query() query: EntreeQueryDto) {
     return this.stock.findEntrees(query);
   }
 
+  @RequirePermission('stock', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   create(@Body() dto: CreateEntreeStockDto) {
     return this.stock.createEntree(dto);
   }
 
+  @RequirePermission('stock', 'create')
   @Post('batch')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   createBatch(@Body() dto: CreateEntreesBatchDto) {
     return this.stock.createEntreesBatch(dto);
   }
 
+  @RequirePermission('stock', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   update(@Param('id') id: string, @Body() dto: UpdateEntreeStockDto) {
     return this.stock.updateEntree(id, dto);
   }
 
+  @RequirePermission('stock', 'delete')
   @Delete(':id')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   remove(@Param('id') id: string) {
@@ -103,11 +108,11 @@ export class StockEntreesController {
 @ApiTags('mouvements-stock')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('stock')
 @Controller('stock/mouvements')
 export class StockMouvementsController {
   constructor(private readonly stock: StockService) {}
 
+  @RequirePermission('stock', 'read')
   @Get()
   @Roles(...readRoles)
   findAll(@Query() query: MouvementQueryDto) {
@@ -118,17 +123,18 @@ export class StockMouvementsController {
 @ApiTags('sorties-stock')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('stock')
 @Controller('stock/sorties')
 export class StockSortiesController {
   constructor(private readonly stock: StockService) {}
 
+  @RequirePermission('stock', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   update(@Param('id') id: string, @Body() dto: UpdateSortieDto) {
     return this.stock.updateSortie(id, dto);
   }
 
+  @RequirePermission('stock', 'delete')
   @Delete(':id')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   remove(@Param('id') id: string) {

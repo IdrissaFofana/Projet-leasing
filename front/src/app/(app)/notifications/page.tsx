@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import type { AppNotification } from '@/lib/types';
 
@@ -86,8 +87,14 @@ export default function NotificationsPage() {
         </button>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <DataTableShell
         loading={loading}

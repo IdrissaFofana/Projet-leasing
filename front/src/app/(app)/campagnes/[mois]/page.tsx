@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { useParams } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import type { Campagne, CampagneLigne, ObservationReleve } from '@/lib/types';
@@ -16,6 +18,7 @@ function ligneBadge(statut: string) {
 }
 
 export default function CampagneDetailPage() {
+  const { confirm } = useFeedback();
   const params = useParams<{ mois: string }>();
   const mois = params.mois;
   const [campagne, setCampagne] = useState<Campagne | null>(null);
@@ -67,7 +70,15 @@ export default function CampagneDetailPage() {
   }
 
   async function archive() {
-    if (!confirm('Archiver les lignes PRET vers les relevés ?')) return;
+    if (
+      !(await confirm({
+        title: 'Confirmation',
+        message: 'Archiver les lignes PRET vers les relevés ?',
+        danger: true,
+        confirmLabel: 'Archiver',
+      }))
+    )
+      return;
     setBusy(true);
     setError(null);
     try {
@@ -155,7 +166,7 @@ export default function CampagneDetailPage() {
     return (
       <div className="page-head">
         <h1>Campagne</h1>
-        <p className="form-error">{error}</p>
+        <PageFeedback error={error} onDismiss={() => setError(null)} />
       </div>
     );
   }
@@ -181,7 +192,7 @@ export default function CampagneDetailPage() {
       <div className="toolbar">
         <input
           className="input"
-          placeholder="Filtrer imprimante / localisation…"
+          placeholder="Filtrer copieur / localisation…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
         />
@@ -210,14 +221,20 @@ export default function CampagneDetailPage() {
         </Link>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <DataTableShell empty={sortedLignes.length === 0} emptyMessage="Aucune ligne">
         <table className="data-table">
           <thead>
             <tr>
-              <SortTh label="Imprimante" sortKey="imprimante" activeKey={sortKey} direction={sortDir} onSort={toggle} />
+              <SortTh label="Copieur" sortKey="imprimante" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Localisation" sortKey="localisation" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="112" sortKey="c112" activeKey={sortKey} direction={sortDir} onSort={toggle} align="right" />
               <SortTh label="113" sortKey="c113" activeKey={sortKey} direction={sortDir} onSort={toggle} align="right" />

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
 
 export type SortDir = 'asc' | 'desc';
 
@@ -139,6 +139,7 @@ export function TableActions({
   viewHref,
   editLabel = 'Modifier',
   deleteLabel = 'Supprimer',
+  children,
 }: {
   onEdit?: () => void;
   onDelete?: () => void;
@@ -146,9 +147,11 @@ export function TableActions({
   viewHref?: string;
   editLabel?: string;
   deleteLabel?: string;
+  children?: ReactNode;
 }) {
   return (
     <div className="tbl-actions">
+      {children}
       {onView ? (
         <button type="button" className="tbl-btn" title="Voir" onClick={onView}>
           <IconEye />

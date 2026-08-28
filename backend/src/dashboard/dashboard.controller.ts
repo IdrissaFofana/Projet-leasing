@@ -11,11 +11,11 @@ import { DashboardService } from './dashboard.service';
 @ApiTags('dashboard')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('dashboard')
 @Controller('dashboard')
 export class DashboardController {
   constructor(private readonly dashboard: DashboardService) {}
 
+  @RequirePermission('dashboard', 'read')
   @Get()
   @Roles(
     RoleUtilisateur.ADMIN,

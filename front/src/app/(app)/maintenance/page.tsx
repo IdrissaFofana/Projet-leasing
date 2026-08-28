@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { FileDropzone } from '@/components/FileDropzone';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
@@ -128,21 +129,27 @@ export default function MaintenanceInterventionsPage() {
       <div className="page-head page-head-row">
         <div>
           <h1>Interventions</h1>
-          <p>Maintenances et assistances — détail imprimante / localisation</p>
+          <p>Maintenances et assistances — détail copieur / localisation</p>
         </div>
         <button type="button" className="btn btn-esay" onClick={openModal}>
           + Nouvelle intervention
         </button>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <Modal
         open={open}
         eyebrow="NOUVEAU"
         title="Nouvelle intervention"
-        subtitle="Les assistances comptent dans le quota mensuel (3 / imprimante)."
+        subtitle="Les assistances comptent dans le quota mensuel (3 / copieur)."
         onClose={() => setOpen(false)}
         footer={
           <>
@@ -183,7 +190,7 @@ export default function MaintenanceInterventionsPage() {
             </div>
           </div>
           <div className="modal-form-row">
-            <label>Imprimante</label>
+            <label>Copieur</label>
             <div className="modal-field">
               <select
                 className="modal-select"
@@ -272,7 +279,7 @@ export default function MaintenanceInterventionsPage() {
             <tr>
               <SortTh label="Code" sortKey="code" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Date" sortKey="dateMaintenance" activeKey={sortKey} direction={sortDir} onSort={toggle} />
-              <SortTh label="Imprimante" sortKey="imprimante" activeKey={sortKey} direction={sortDir} onSort={toggle} />
+              <SortTh label="Copieur" sortKey="imprimante" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Localisation" sortKey="localisation" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Type" sortKey="type" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Technicien" sortKey="technicien" activeKey={sortKey} direction={sortDir} onSort={toggle} />

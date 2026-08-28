@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { FileDropzone } from '@/components/FileDropzone';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
@@ -113,7 +114,7 @@ export default function ReleveDetailPage() {
     return (
       <div className="page-head">
         <h1>Relevé</h1>
-        <p className="form-error">{error}</p>
+        <PageFeedback error={error} onDismiss={() => setError(null)} />
       </div>
     );
   }
@@ -287,7 +288,7 @@ export default function ReleveDetailPage() {
         }
       >
         <form id="releve-edit" className="modal-form" onSubmit={(e) => void onSave(e)}>
-          {formError ? <p className="form-error">{formError}</p> : null}
+          <PageFeedback error={formError} onDismiss={() => setFormError(null)} />
           {(
             [
               'c112',

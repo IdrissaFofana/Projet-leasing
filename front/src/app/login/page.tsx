@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { PasswordInput } from '@/components/PasswordInput';
@@ -88,7 +89,7 @@ export default function LoginPage() {
           <p className="login-app-tag">Parc · Stock · Relevés · Facturation</p>
         </div>
 
-        {error ? <p className="form-error">{error}</p> : null}
+        <PageFeedback error={error} onDismiss={() => setError(null)} />
 
         <div className="field field-iconed">
           <input

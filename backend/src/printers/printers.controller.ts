@@ -22,11 +22,11 @@ import { PrintersService } from './printers.service';
 @ApiTags('imprimantes')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('printers')
 @Controller('printers')
 export class PrintersController {
   constructor(private readonly printers: PrintersService) {}
 
+  @RequirePermission('printers', 'read')
   @Get()
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -38,6 +38,7 @@ export class PrintersController {
     return this.printers.findAll(query);
   }
 
+  @RequirePermission('printers', 'read')
   @Get('code/:code')
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -49,6 +50,7 @@ export class PrintersController {
     return this.printers.findByCode(code);
   }
 
+  @RequirePermission('printers', 'read')
   @Get(':id')
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -60,18 +62,21 @@ export class PrintersController {
     return this.printers.findOne(id);
   }
 
+  @RequirePermission('printers', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   create(@Body() dto: CreatePrinterDto) {
     return this.printers.create(dto);
   }
 
+  @RequirePermission('printers', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   update(@Param('id') id: string, @Body() dto: UpdatePrinterDto) {
     return this.printers.update(id, dto);
   }
 
+  @RequirePermission('printers', 'delete')
   @Delete(':id')
   @Roles(RoleUtilisateur.ADMIN)
   remove(@Param('id') id: string) {

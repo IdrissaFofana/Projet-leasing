@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import { currentMois, formatMoney } from '@/lib/format';
 import type { FacturePeriode } from '@/lib/types';
@@ -80,8 +81,14 @@ export default function FacturationPage() {
         </Link>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <div className="panel">
         <h2>Périodes facturées</h2>

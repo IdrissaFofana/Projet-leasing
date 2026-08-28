@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { ModalCloseButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
 import { formatDateTime } from '@/lib/format';
@@ -116,7 +117,7 @@ export function AffectationDetailModal({
           </div>
         ) : !row ? (
           <div className="detail-modal-loading">
-            <p className="form-error">{error ?? 'Affectation introuvable'}</p>
+            <p>{error ?? 'Affectation introuvable'}</p>
             <button type="button" className="btn btn-soft" onClick={onClose}>
               Fermer
             </button>
@@ -145,10 +146,10 @@ export function AffectationDetailModal({
             <div className="modal-head-rule" aria-hidden />
 
             <div className="detail-modal-body">
-              {error ? <p className="form-error">{error}</p> : null}
+              <PageFeedback error={error} onDismiss={() => setError(null)} />
 
               <section className="aff-detail-section">
-                <h3 className="aff-detail-section-title">Imprimante</h3>
+                <h3 className="aff-detail-section-title">Copieur</h3>
                 {printer ? (
                   <div className="detail-modal-grid">
                     <DetailCard label="Code" value={printer.code} mono />
@@ -167,7 +168,7 @@ export function AffectationDetailModal({
                     <DetailCard label="Localisation" value={printer.localisation ?? '—'} wide />
                   </div>
                 ) : (
-                  <p className="empty-state">Imprimante non chargée</p>
+                  <p className="empty-state">Copieur non chargé</p>
                 )}
               </section>
 

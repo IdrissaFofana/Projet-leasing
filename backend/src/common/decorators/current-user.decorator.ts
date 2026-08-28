@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext, SetMetadata } from '@nestjs/common';
-import type { ModulePermission } from '../auth/permissions';
+import type { CrudAction, ModulePermission } from '../auth/permissions';
 
 export type AuthUser = {
   id: string;
@@ -7,6 +7,11 @@ export type AuthUser = {
   role: string;
   permissions: string[];
   mustChangePassword: boolean;
+};
+
+export type PermissionRequirement = {
+  module: ModulePermission;
+  action: CrudAction;
 };
 
 export const CurrentUser = createParamDecorator(
@@ -17,8 +22,12 @@ export const CurrentUser = createParamDecorator(
 );
 
 export const PERMISSIONS_KEY = 'permissions';
-export const RequirePermission = (...modules: ModulePermission[]) =>
-  SetMetadata(PERMISSIONS_KEY, modules);
+
+/** Exige une permission CRUD sur un module. */
+export const RequirePermission = (
+  module: ModulePermission,
+  action: CrudAction,
+) => SetMetadata(PERMISSIONS_KEY, [{ module, action }] as PermissionRequirement[]);
 
 /** Routes autorisées même si mustChangePassword = true */
 export const ALLOW_PASSWORD_CHANGE_KEY = 'allowPasswordChange';

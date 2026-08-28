@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import {
   AgentsController,
+  ClientsController,
   FournisseursController,
   MarquesController,
   SequencesController,
@@ -15,6 +16,7 @@ import { ReferentielsService } from './referentiels.service';
     FournisseursController,
     AgentsController,
     ServicesController,
+    ClientsController,
     TarifsController,
     SequencesController,
   ],

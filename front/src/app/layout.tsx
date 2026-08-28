@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Source_Sans_3, IBM_Plex_Mono, Libre_Baskerville } from 'next/font/google';
 import { AuthProvider } from '@/lib/auth-context';
 import { LocaleProvider } from '@/lib/locale-context';
+import { FeedbackProvider } from '@/components/feedback/FeedbackProvider';
 import './globals.css';
 
 const body = Source_Sans_3({
@@ -30,7 +31,7 @@ const mono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: 'ESAY — Suivi Leasing',
-  description: 'Console ESAY parc imprimantes, stock, relevés et facturation',
+  description: 'Console ESAY parc copieurs, stock, relevés et facturation',
   icons: {
     icon: [
       { url: '/favicon.png', type: 'image/png' },
@@ -53,7 +54,9 @@ export default function RootLayout({
     >
       <body className="min-h-full antialiased">
         <LocaleProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <FeedbackProvider>
+            <AuthProvider>{children}</AuthProvider>
+          </FeedbackProvider>
         </LocaleProvider>
       </body>
     </html>

@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { ApiError, api } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { PasswordInput } from '@/components/PasswordInput';
@@ -109,7 +110,7 @@ export default function ChangePasswordPage() {
           </p>
         </div>
 
-        {error ? <p className="form-error">{error}</p> : null}
+        <PageFeedback error={error} onDismiss={() => setError(null)} />
 
         <div className="field">
           <PasswordInput

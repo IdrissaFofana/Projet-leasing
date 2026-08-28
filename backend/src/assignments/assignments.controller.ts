@@ -35,11 +35,11 @@ const writeRoles = [RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN] as const;
 
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('assignments')
 @Controller('assignments')
 export class AssignmentsController {
   constructor(private readonly assignments: AssignmentsService) {}
 
+  @RequirePermission('assignments', 'read')
   @ApiTags('affectations')
   @Get()
   @Roles(...readRoles)
@@ -47,6 +47,7 @@ export class AssignmentsController {
     return this.assignments.findAll(query);
   }
 
+  @RequirePermission('assignments', 'create')
   @ApiTags('kits-cmyk')
   @Post('kit')
   @Roles(...writeRoles)
@@ -54,6 +55,7 @@ export class AssignmentsController {
     return this.assignments.createKit(dto);
   }
 
+  @RequirePermission('assignments', 'read')
   @ApiTags('affectations')
   @Get(':id')
   @Roles(...readRoles)
@@ -61,6 +63,7 @@ export class AssignmentsController {
     return this.assignments.findOne(id);
   }
 
+  @RequirePermission('assignments', 'create')
   @ApiTags('affectations')
   @Post()
   @Roles(...writeRoles)
@@ -68,6 +71,7 @@ export class AssignmentsController {
     return this.assignments.create(dto);
   }
 
+  @RequirePermission('assignments', 'update')
   @ApiTags('affectations')
   @Patch(':id')
   @Roles(...writeRoles)
@@ -75,6 +79,7 @@ export class AssignmentsController {
     return this.assignments.update(id, dto);
   }
 
+  @RequirePermission('assignments', 'delete')
   @ApiTags('affectations')
   @Delete(':id')
   @Roles(...writeRoles)

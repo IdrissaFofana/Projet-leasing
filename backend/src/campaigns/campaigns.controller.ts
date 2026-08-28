@@ -39,17 +39,18 @@ const writeRoles = [
 @ApiTags('campagnes')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('campaigns')
 @Controller('campaigns')
 export class CampaignsController {
   constructor(private readonly campaigns: CampaignsService) {}
 
+  @RequirePermission('campaigns', 'read')
   @Get()
   @Roles(...readRoles)
   findAll() {
     return this.campaigns.findAll();
   }
 
+  @RequirePermission('campaigns', 'read')
   @Get(':mois/export')
   @Roles(...readRoles)
   async exportFile(
@@ -63,18 +64,21 @@ export class CampaignsController {
     });
   }
 
+  @RequirePermission('campaigns', 'read')
   @Get(':mois')
   @Roles(...readRoles)
   findByMois(@Param('mois') mois: string) {
     return this.campaigns.findByMois(mois);
   }
 
+  @RequirePermission('campaigns', 'create')
   @Post()
   @Roles(...writeRoles)
   create(@Body() dto: CreateCampaignDto) {
     return this.campaigns.create(dto);
   }
 
+  @RequirePermission('campaigns', 'update')
   @Patch(':mois/lignes/:printerId')
   @Roles(...writeRoles)
   updateLigne(
@@ -85,6 +89,7 @@ export class CampaignsController {
     return this.campaigns.updateLigne(mois, printerId, dto);
   }
 
+  @RequirePermission('campaigns', 'create')
   @Post(':mois/archive')
   @Roles(...writeRoles)
   archive(@Param('mois') mois: string) {

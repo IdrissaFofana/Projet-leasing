@@ -64,9 +64,9 @@ export class AuditController {
     return this.audit.findForUser(user.id, query.limit ?? 40);
   }
 
+  @RequirePermission('users', 'read')
   @Get()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   findRecent(@Query() query: AuditQueryDto) {
     return this.audit.findRecent({
       limit: query.limit ?? 100,

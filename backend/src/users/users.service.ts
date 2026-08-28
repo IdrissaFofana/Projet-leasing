@@ -7,7 +7,10 @@ import {
 import * as bcrypt from 'bcrypt';
 import { AuditService } from '../audit/audit.service';
 import {
+  allPermissionKeys,
   generateTempPassword,
+  MODULE_ACTIONS,
+  MODULE_LABELS,
   MODULES,
   resolvePermissions,
 } from '../common/auth/permissions';
@@ -58,6 +61,8 @@ export class UsersService {
   modulesCatalog() {
     return {
       modules: MODULES,
+      moduleLabels: MODULE_LABELS,
+      moduleActions: MODULE_ACTIONS,
       defaultsByRole: {
         ADMIN: resolvePermissions('ADMIN'),
         TECHNICIEN: resolvePermissions('TECHNICIEN'),
@@ -104,7 +109,7 @@ export class UsersService {
       ...user,
       effectivePermissions: fromMetier
         ? user.roleMetier!.code === 'ADMIN'
-          ? [...MODULES]
+          ? allPermissionKeys()
           : resolvePermissions(user.role, user.roleMetier!.permissions, {
               fromRoleMetier: true,
             })

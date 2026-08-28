@@ -4,6 +4,7 @@ export type ModulePermission =
   | 'dashboard'
   | 'printers'
   | 'stock'
+  | 'stock_produits'
   | 'assignments'
   | 'readings'
   | 'campaigns'
@@ -21,7 +22,7 @@ export type AuthUser = {
   prenom?: string | null;
   nomFamille?: string | null;
   avatarUrl?: string | null;
-  permissions: ModulePermission[];
+  permissions: string[];
   mustChangePassword: boolean;
 };
 
@@ -41,7 +42,7 @@ export type UserProfile = {
   role: RoleUtilisateur;
   permissions: string[];
   mustChangePassword: boolean;
-  effectivePermissions?: ModulePermission[];
+  effectivePermissions?: string[];
   actif: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -60,7 +61,7 @@ export type ManagedUser = {
   createdAt: string;
   temporaryPassword?: string;
   generatedPassword?: boolean;
-  effectivePermissions?: ModulePermission[];
+  effectivePermissions?: string[];
 };
 
 export type RoleMetierRef = {
@@ -122,6 +123,11 @@ export type NamedRef = {
   id: string;
   nom: string;
   actif?: boolean;
+};
+
+export type ClientRef = NamedRef & {
+  telephone?: string | null;
+  email?: string | null;
 };
 
 export type Tarif = {
@@ -561,6 +567,52 @@ export const STATUT_IMP_LABEL: Record<StatutImprimante, string> = {
   EN_MAINTENANCE: 'En maintenance',
   HORS_SERVICE: 'Hors service',
   RETIREE: 'Retirée',
+};
+
+export type StatutStockProduit =
+  | 'RECEPTION_EN_ATTENTE'
+  | 'EN_STOCK'
+  | 'PARTIELLEMENT_LIVRE'
+  | 'LIVRE'
+  | 'ANNULE';
+
+export const STATUT_STOCK_PRODUIT_LABEL: Record<StatutStockProduit, string> = {
+  RECEPTION_EN_ATTENTE: 'Réception en attente',
+  EN_STOCK: 'En stock',
+  PARTIELLEMENT_LIVRE: 'Partiellement livré',
+  LIVRE: 'Livré',
+  ANNULE: 'Annulé',
+};
+
+export type StockProduit = {
+  id: string;
+  numero: number;
+  designation: string;
+  reference: string | null;
+  fournisseur: string | null;
+  qteRecue: number;
+  dateReception: string | null;
+  bonReception: string | null;
+  qteLivree: number;
+  dateLivraison: string | null;
+  destinataire: string | null;
+  clientId?: string | null;
+  client?: ClientRef | null;
+  bonLivraison: string | null;
+  statut: StatutStockProduit;
+  statutManuel: boolean;
+  observations: string | null;
+  qteRestante: number;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type StockProduitSummary = {
+  totalLignes: number;
+  qteRecue: number;
+  qteLivree: number;
+  qteRestante: number;
+  byStatut: Record<string, number>;
 };
 
 export type NotificationType =

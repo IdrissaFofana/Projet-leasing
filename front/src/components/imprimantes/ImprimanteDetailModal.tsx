@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useId, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
 import { formatDate, formatDateTime, toInputDate } from '@/lib/format';
@@ -82,6 +84,7 @@ export function ImprimanteDetailModal({
   onUpdated,
   onDeleted,
 }: Props) {
+  const { confirm } = useFeedback();
   const titleId = useId();
   const open = !!printerId;
   const [mode, setMode] = useState<Mode>(initialMode);
@@ -168,7 +171,7 @@ export function ImprimanteDetailModal({
         kind: 'INSTALLATION',
         date: row.dateInstallation,
         title: 'Mise en service',
-        detail: `Imprimante installée${row.localisation ? ` · ${row.localisation}` : ''}`,
+        detail: `Copieur installé${row.localisation ? ` · ${row.localisation}` : ''}`,
       });
     }
 
@@ -266,7 +269,15 @@ export function ImprimanteDetailModal({
 
   async function retire() {
     if (!row) return;
-    if (!confirm(`Retirer ${row.code} du parc ?`)) return;
+    if (
+      !(await confirm({
+        title: 'Confirmation',
+        message: `Retirer ${row.code} du parc ?`,
+        danger: true,
+        confirmLabel: 'Retirer',
+      }))
+    )
+      return;
     try {
       await api.printers.remove(row.id);
       onDeleted();
@@ -294,7 +305,7 @@ export function ImprimanteDetailModal({
           </div>
         ) : !row ? (
           <div className="detail-modal-loading">
-            <p className="form-error">{error ?? 'Imprimante introuvable'}</p>
+            <p>{error ?? 'Copieur introuvable'}</p>
             <button type="button" className="btn btn-soft" onClick={onClose}>
               Fermer
             </button>
@@ -303,7 +314,7 @@ export function ImprimanteDetailModal({
           <>
             <header className="modal-dialog-head">
               <div className="modal-dialog-head-text">
-                <p className="modal-eyebrow">Fiche imprimante</p>
+                <p className="modal-eyebrow">Fiche copieur</p>
                 <h2 id={titleId}>{row.code}</h2>
                 <p className="modal-subtitle">
                   {row.modele}
@@ -348,7 +359,7 @@ export function ImprimanteDetailModal({
             </div>
 
             <div className="detail-modal-body">
-              {error ? <p className="form-error">{error}</p> : null}
+              <PageFeedback error={error} onDismiss={() => setError(null)} />
 
               {mode === 'view' ? (
                 <>
@@ -390,7 +401,7 @@ export function ImprimanteDetailModal({
                     <p>Chargement de l’historique…</p>
                   </div>
                 ) : timeline.length === 0 ? (
-                  <p className="empty-state">Aucun événement enregistré pour cette imprimante</p>
+                  <p className="empty-state">Aucun événement enregistré pour ce copieur</p>
                 ) : (
                   <ol className="imp-chrono">
                     {timeline.map((ev) => (

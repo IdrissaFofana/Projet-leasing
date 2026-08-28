@@ -17,6 +17,7 @@ import { ReferentielsModule } from './referentiels/referentiels.module';
 import { RolesModule } from './roles/roles.module';
 import { SequencesModule } from './sequences/sequences.module';
 import { StockModule } from './stock/stock.module';
+import { StockProduitsModule } from './stock-produits/stock-produits.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -33,6 +34,7 @@ import { UsersModule } from './users/users.module';
     SequencesModule,
     PrintersModule,
     StockModule,
+    StockProduitsModule,
     AssignmentsModule,
     ReadingsModule,
     CampaignsModule,

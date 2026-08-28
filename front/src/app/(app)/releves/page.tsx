@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { useRouter } from 'next/navigation';
 import { FileDropzone } from '@/components/FileDropzone';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
@@ -489,8 +490,15 @@ export default function RelevesPage() {
         </button>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {importMsg ? <p className="msg-ok">{importMsg}</p> : null}
+      <PageFeedback
+        error={error ?? formError}
+        ok={importMsg}
+        onDismiss={() => {
+          setError(null);
+          setFormError(null);
+          setImportMsg(null);
+        }}
+      />
 
       <Modal
         open={open}
@@ -509,9 +517,8 @@ export default function RelevesPage() {
         }
       >
         <form id="releve-form" className="modal-form" onSubmit={(e) => void onCreate(e, false)}>
-          {formError ? <p className="form-error">{formError}</p> : null}
           <div className="modal-form-row">
-            <label>Imprimante</label>
+            <label>Copieur</label>
             <div className="modal-field">
               <select
                 className="modal-select"
@@ -725,7 +732,7 @@ export default function RelevesPage() {
               <thead>
                 <tr>
                   <SortTh label="Code" sortKey="code" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} />
-                  <SortTh label="Imprimante" sortKey="imprimante" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} />
+                  <SortTh label="Copieur" sortKey="imprimante" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} />
                   <SortTh label="Localisation" sortKey="localisation" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} />
                   <SortTh label="ΔN" sortKey="deltaN" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} align="right" />
                   <SortTh label="Inclus N" sortKey="deltaN" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} align="right" />
@@ -774,7 +781,7 @@ export default function RelevesPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <th>Imprimante</th>
+                  <th>Copieur</th>
                   <th>Localisation</th>
                   {matrix.mois.map((m) => (
                     <th key={m} data-align="center">{m}</th>
@@ -834,7 +841,7 @@ export default function RelevesPage() {
             <table className="data-table">
               <thead>
                 <tr>
-                  <SortTh label="Imprimante" sortKey="imprimante" activeKey={mensuelleSort.sortKey} direction={mensuelleSort.sortDir} onSort={mensuelleSort.toggle} />
+                  <SortTh label="Copieur" sortKey="imprimante" activeKey={mensuelleSort.sortKey} direction={mensuelleSort.sortDir} onSort={mensuelleSort.toggle} />
                   <SortTh label="Début N" sortKey="debutN" activeKey={mensuelleSort.sortKey} direction={mensuelleSort.sortDir} onSort={mensuelleSort.toggle} align="right" />
                   <SortTh label="Fin N" sortKey="finN" activeKey={mensuelleSort.sortKey} direction={mensuelleSort.sortDir} onSort={mensuelleSort.toggle} align="right" />
                   <SortTh label="ΔN" sortKey="deltaN" activeKey={mensuelleSort.sortKey} direction={mensuelleSort.sortDir} onSort={mensuelleSort.toggle} align="right" />
@@ -883,7 +890,7 @@ export default function RelevesPage() {
               <thead>
                 <tr>
                   <SortTh label="Code" sortKey="code" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} />
-                  <SortTh label="Imprimante" sortKey="imprimante" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} />
+                  <SortTh label="Copieur" sortKey="imprimante" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} />
                   <SortTh label="ΔN brut/fact." sortKey="totalNoir" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} align="right" />
                   <SortTh label="301" sortKey="c301" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} align="right" />
                   <SortTh label="Écart" sortKey="ecart" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} align="right" />

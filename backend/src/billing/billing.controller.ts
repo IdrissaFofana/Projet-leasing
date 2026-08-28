@@ -20,11 +20,11 @@ import { BillingExportQueryDto } from './dto/billing.dto';
 @ApiTags('facturation')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('billing')
 @Controller('billing')
 export class BillingController {
   constructor(private readonly billing: BillingService) {}
 
+  @RequirePermission('billing', 'read')
   @Get('periods')
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -36,6 +36,7 @@ export class BillingController {
     return this.billing.findAll();
   }
 
+  @RequirePermission('billing', 'read')
   @Get('periods/:mois')
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -47,18 +48,21 @@ export class BillingController {
     return this.billing.findByMois(mois);
   }
 
+  @RequirePermission('billing', 'create')
   @Post('periods/:mois/calculate')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.FACTURATION)
   calculate(@Param('mois') mois: string) {
     return this.billing.calculate(mois);
   }
 
+  @RequirePermission('billing', 'create')
   @Post('periods/:mois/close')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.FACTURATION)
   close(@Param('mois') mois: string) {
     return this.billing.close(mois);
   }
 
+  @RequirePermission('billing', 'read')
   @Get('periods/:mois/export')
   @Roles(
     RoleUtilisateur.ADMIN,

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { roleLabel, useLocale, type Locale } from '@/lib/locale-context';
@@ -169,6 +170,7 @@ export function HeaderTools() {
 
   return (
     <div className="header-tools" ref={rootRef}>
+      <PageFeedback error={error} onDismiss={() => setError(null)} />
       {/* Langue */}
       <div className="header-tool">
         <button
@@ -245,7 +247,7 @@ export function HeaderTools() {
               </button>
             </div>
             {loading && <p className="header-panel-empty">{t('loading')}</p>}
-            {error && <p className="header-panel-error">{error}</p>}
+            
             {!loading && !error && history.length === 0 && (
               <p className="header-panel-empty">{t('noHistory')}</p>
             )}
@@ -321,7 +323,7 @@ export function HeaderTools() {
             </div>
 
             {loading && <p className="header-panel-empty">{t('loading')}</p>}
-            {error && <p className="header-panel-error">{error}</p>}
+            
             {!loading && !error && notifs.length === 0 && (
               <p className="header-panel-empty">{t('noNotifications')}</p>
             )}
@@ -434,7 +436,7 @@ export function HeaderTools() {
 
             <div className="msg-modal-body">
               {loading && <p className="header-panel-empty">{t('loading')}</p>}
-              {error && <p className="header-panel-error">{error}</p>}
+              
 
               {!loading && !error && msgTab === 'members' && (
                 <>

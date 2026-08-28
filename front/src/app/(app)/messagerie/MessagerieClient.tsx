@@ -2,6 +2,7 @@
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { roleLabel, useLocale } from '@/lib/locale-context';
@@ -233,11 +234,9 @@ export default function MessagerieClient() {
           </div>
         )}
 
-        {error && (
-          <p className="form-error" style={{ margin: '0.5rem 0.75rem' }}>
-            {error}
-          </p>
-        )}
+        {error ? (
+          <PageFeedback error={error} onDismiss={() => setError(null)} />
+        ) : null}
 
         <div className="wa-conv-list">
           {loadingList ? (

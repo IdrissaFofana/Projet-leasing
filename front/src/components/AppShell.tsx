@@ -36,8 +36,14 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { href: '/', label: 'Tableau de bord', icon: 'dashboard', permission: 'dashboard' },
-  { href: '/imprimantes', label: 'Imprimantes', icon: 'printers', permission: 'printers' },
-  { href: '/stock', label: 'Stock', icon: 'stock', permission: 'stock' },
+  { href: '/imprimantes', label: 'Copieurs', icon: 'printers', permission: 'printers' },
+  { href: '/stock', label: 'Stock cartouches', icon: 'stock', permission: 'stock' },
+  {
+    href: '/stock-produits',
+    label: 'Stock produits',
+    icon: 'stock',
+    permission: 'stock_produits',
+  },
   { href: '/affectations', label: 'Affectations', icon: 'assignments', permission: 'assignments' },
   { href: '/releves', label: 'Relevés', icon: 'readings', permission: 'readings' },
   { href: '/campagnes', label: 'Campagnes', icon: 'campaigns', permission: 'campaigns' },
@@ -62,6 +68,7 @@ const NAV: NavItem[] = [
       { href: '/referentiels/fournisseurs', label: 'Fournisseurs' },
       { href: '/referentiels/agents', label: 'Agents' },
       { href: '/referentiels/services', label: 'Services' },
+      { href: '/referentiels/clients', label: 'Clients' },
       { href: '/referentiels/tarifs', label: 'Tarifs' },
     ],
   },
@@ -81,8 +88,9 @@ const NAV: NavItem[] = [
 
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Tableau de bord',
-  '/imprimantes': 'Imprimantes',
-  '/stock': 'Stock',
+  '/imprimantes': 'Copieurs',
+  '/stock': 'Stock cartouches',
+  '/stock-produits': 'Stock produits',
   '/affectations': 'Affectations',
   '/releves': 'Relevés',
   '/campagnes': 'Campagnes',
@@ -94,6 +102,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/referentiels/fournisseurs': 'Fournisseurs',
   '/referentiels/agents': 'Agents',
   '/referentiels/services': 'Services',
+  '/referentiels/clients': 'Clients',
   '/referentiels/tarifs': 'Tarifs',
   '/admin': 'Référentiels',
   '/utilisateurs': 'Gestion utilisateurs',
@@ -288,6 +297,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     (item) => !item.permission || userHasPermission(user, item.permission),
   );
 
+  function isNavActive(href: string) {
+    if (href === '/') return pathname === '/';
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
+
   function isChildActive(childHref: string) {
     if (childHref === '/maintenance') {
       return (
@@ -298,12 +312,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (childHref === '/utilisateurs/comptes') {
       return pathname === '/utilisateurs' || pathname === '/utilisateurs/comptes';
     }
-    return pathname === childHref || pathname.startsWith(`${childHref}/`);
+    return isNavActive(childHref);
   }
 
   function isGroupActive(item: NavItem) {
     if (item.children?.some((c) => isChildActive(c.href))) return true;
-    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+    return isNavActive(item.href);
   }
 
   function isGroupOpen(item: NavItem) {
@@ -401,7 +415,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </svg>
             </IconBtn>
             {userHasPermission(user, 'printers') ? (
-            <IconBtn title="Imprimantes" href="/imprimantes">
+            <IconBtn title="Copieurs" href="/imprimantes">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
                 <rect x="5" y="4" width="14" height="10" rx="1.4" stroke="currentColor" strokeWidth="1.6" />
                 <path d="M8 17h8M9 20h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -586,10 +600,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 );
               }
 
-              const active =
-                item.href === '/'
-                  ? pathname === '/'
-                  : pathname.startsWith(item.href);
+              const active = isNavActive(item.href);
               return (
                 <Link
                   key={item.href}

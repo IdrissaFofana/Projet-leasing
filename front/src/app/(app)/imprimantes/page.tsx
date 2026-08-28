@@ -8,6 +8,8 @@ import {
   TableActions,
   useTableSort,
 } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { ImprimanteDetailModal } from '@/components/imprimantes/ImprimanteDetailModal';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
@@ -39,6 +41,7 @@ const emptyForm = {
 };
 
 function ImprimantesPageContent() {
+  const { confirm } = useFeedback();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [rows, setRows] = useState<Imprimante[]>([]);
@@ -135,7 +138,7 @@ function ImprimantesPageContent() {
         observations: form.observations || undefined,
       });
       setOpen(false);
-      setOk('Imprimante créée');
+      setOk('Copieur créé');
       await load();
       openDetail(created);
     } catch (err) {
@@ -146,7 +149,15 @@ function ImprimantesPageContent() {
   }
 
   async function onDelete(row: Imprimante) {
-    if (!confirm(`Retirer ${row.code} du parc ?`)) return;
+    if (
+      !(await confirm({
+        title: 'Confirmation',
+        message: `Retirer ${row.code} du parc ?`,
+        danger: true,
+        confirmLabel: 'Retirer',
+      }))
+    )
+      return;
     setError(null);
     try {
       await api.printers.remove(row.id);
@@ -195,11 +206,11 @@ function ImprimantesPageContent() {
     <>
       <div className="page-head page-head-row">
         <div>
-          <h1>Imprimantes</h1>
+          <h1>Copieurs</h1>
           <p>{counts.actives} active(s) · {counts.total} au total</p>
         </div>
         <button type="button" className="btn btn-esay" onClick={openModal}>
-          + Nouvelle imprimante
+          + Nouveau copieur
         </button>
       </div>
 
@@ -220,13 +231,20 @@ function ImprimantesPageContent() {
         <button type="button" className="btn btn-soft" onClick={() => void load()}>Filtrer</button>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error ?? formError}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setFormError(null);
+          setOk(null);
+        }}
+      />
 
       <Modal
         open={open}
         eyebrow="NOUVEAU"
-        title="Nouvelle imprimante"
+        title="Nouveau copieur"
         subtitle="Saisissez le modèle, le n° de série et la localisation."
         onClose={() => setOpen(false)}
         wide
@@ -240,7 +258,6 @@ function ImprimantesPageContent() {
         }
       >
         <form id="imprimante-form" className="modal-form" onSubmit={onCreate}>
-          {formError ? <p className="form-error">{formError}</p> : null}
           <div className="modal-form-row">
             <label>Modèle</label>
             <div className="modal-field">
@@ -321,12 +338,12 @@ function ImprimantesPageContent() {
           void load();
         }}
         onDeleted={() => {
-          setOk('Imprimante retirée du parc');
+          setOk('Copieur retiré du parc');
           void load();
         }}
       />
 
-      <DataTableShell loading={loading} empty={!loading && rows.length === 0} emptyMessage="Aucune imprimante">
+      <DataTableShell loading={loading} empty={!loading && rows.length === 0} emptyMessage="Aucun copieur">
         <table className="data-table">
           <thead>
             <tr>
@@ -373,7 +390,7 @@ function ImprimantesPageContent() {
 
 export default function ImprimantesPage() {
   return (
-    <Suspense fallback={<div className="page-head"><h1>Imprimantes</h1><p>Chargement…</p></div>}>
+    <Suspense fallback={<div className="page-head"><h1>Copieurs</h1><p>Chargement…</p></div>}>
       <ImprimantesPageContent />
     </Suspense>
   );

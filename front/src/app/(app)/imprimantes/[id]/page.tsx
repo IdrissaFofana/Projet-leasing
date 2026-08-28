@@ -13,7 +13,7 @@ export default function ImprimanteDetailRedirect() {
 
   return (
     <div className="page-head">
-      <h1>Imprimante</h1>
+      <h1>Copieur</h1>
       <p>Ouverture de la fiche…</p>
     </div>
   );

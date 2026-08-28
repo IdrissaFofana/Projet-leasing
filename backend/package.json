@@ -13,7 +13,10 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
-    "import:excel": "ts-node scripts/import-excel.ts"
+    "import:excel": "ts-node --transpile-only scripts/import-excel.ts",
+    "import:stock-produits": "ts-node --transpile-only scripts/import-stock-produits.ts",
+    "backfill:clients": "ts-node --transpile-only scripts/backfill-clients-from-stock.ts",
+    "migrate:permissions": "ts-node --transpile-only scripts/migrate-permissions-crud.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.12",

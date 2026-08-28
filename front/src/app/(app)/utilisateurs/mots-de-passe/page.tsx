@@ -2,14 +2,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { api, ApiError } from '@/lib/api';
 import type { ManagedUser } from '@/lib/types';
 
 export default function MotsDePassePage() {
+  const { confirm, showAlert } = useFeedback();
   const [rows, setRows] = useState<ManagedUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const { sortKey, sortDir, toggle, sort } = useTableSort<ManagedUser>('nom', 'asc');
 
@@ -25,9 +27,12 @@ export default function MotsDePassePage() {
 
   async function resetPassword(u: ManagedUser) {
     if (
-      !window.confirm(
-        `Régénérer un mot de passe temporaire pour ${u.nom} ?\nL’utilisateur devra le redéfinir à la prochaine connexion.`,
-      )
+      !(await confirm({
+        title: 'Confirmation',
+        message: `Régénérer un mot de passe temporaire pour ${u.nom} ? L’utilisateur devra le redéfinir à la prochaine connexion.`,
+        danger: true,
+        confirmLabel: 'Régénérer',
+      }))
     ) {
       return;
     }
@@ -36,7 +41,13 @@ export default function MotsDePassePage() {
     setOk(null);
     try {
       const res = await api.users.resetPassword(u.id);
-      setTempPassword(res.temporaryPassword ?? null);
+      if (res.temporaryPassword) {
+        showAlert({
+          variant: 'success',
+          title: 'Mot de passe temporaire',
+          message: `Mot de passe temporaire : ${res.temporaryPassword} (changement obligatoire à la 1ʳᵉ connexion)`,
+        });
+      }
       setOk(
         `Mot de passe régénéré pour ${u.nom}. Communiquez-le de façon sécurisée — redéfinition obligatoire à la connexion.`,
       );
@@ -68,25 +79,14 @@ export default function MotsDePassePage() {
         </p>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
-      {tempPassword ? (
-        <div
-          className="msg-ok"
-          style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}
-        >
-          <span>
-            Mot de passe temporaire : <strong className="mono">{tempPassword}</strong>
-          </span>
-          <button
-            type="button"
-            className="btn btn-soft"
-            onClick={() => void navigator.clipboard.writeText(tempPassword)}
-          >
-            Copier
-          </button>
-        </div>
-      ) : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <DataTableShell empty={rows.length === 0} emptyMessage="Aucun utilisateur">
         <table className="data-table">

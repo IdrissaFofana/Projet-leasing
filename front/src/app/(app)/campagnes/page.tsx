@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { useRouter } from 'next/navigation';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
@@ -83,7 +84,7 @@ export default function CampagnesPage() {
         </button>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
+      <PageFeedback error={error} onDismiss={() => setError(null)} />
 
       <Modal
         open={open}

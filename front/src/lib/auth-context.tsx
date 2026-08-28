@@ -16,7 +16,13 @@ import {
   setSession,
   setStoredUser,
 } from './auth-storage';
-import type { AuthUser, ModulePermission } from './types';
+import {
+  userHasCrudPermission,
+  userHasPermission,
+  type CrudAction,
+  type ModulePermission,
+} from './permissions';
+import type { AuthUser } from './types';
 
 type AuthContextValue = {
   user: AuthUser | null;
@@ -26,6 +32,7 @@ type AuthContextValue = {
   refreshUser: () => Promise<AuthUser | null>;
   setUser: (user: AuthUser) => void;
   hasPermission: (module: ModulePermission) => boolean;
+  hasCrudPermission: (module: ModulePermission, action: CrudAction) => boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,7 +46,7 @@ function normalizeUser(raw: AuthUser | (UserProfileLike & { permissions?: string
     prenom: raw.prenom,
     nomFamille: raw.nomFamille,
     avatarUrl: raw.avatarUrl,
-    permissions: (raw.permissions ?? []) as ModulePermission[],
+    permissions: raw.permissions ?? [],
     mustChangePassword: Boolean(raw.mustChangePassword),
   };
 }
@@ -151,17 +158,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const hasPermission = useCallback(
-    (module: ModulePermission) => {
-      if (!user) return false;
-      if (user.role === 'ADMIN') return true;
-      return user.permissions.includes(module);
-    },
+    (module: ModulePermission) => userHasPermission(user, module),
+    [user],
+  );
+
+  const hasCrudPermission = useCallback(
+    (module: ModulePermission, action: CrudAction) =>
+      userHasCrudPermission(user, module, action),
     [user],
   );
 
   const value = useMemo(
-    () => ({ user, ready, login, logout, refreshUser, setUser, hasPermission }),
-    [user, ready, login, logout, refreshUser, setUser, hasPermission],
+    () => ({
+      user,
+      ready,
+      login,
+      logout,
+      refreshUser,
+      setUser,
+      hasPermission,
+      hasCrudPermission,
+    }),
+    [user, ready, login, logout, refreshUser, setUser, hasPermission, hasCrudPermission],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

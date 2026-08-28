@@ -5,14 +5,12 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import {
-  hasPermission,
-  type ModulePermission,
-} from '../auth/permissions';
+import { hasCrudPermission } from '../auth/permissions';
 import {
   ALLOW_PASSWORD_CHANGE_KEY,
   AuthUser,
   PERMISSIONS_KEY,
+  type PermissionRequirement,
 } from '../decorators/current-user.decorator';
 
 @Injectable()
@@ -35,17 +33,21 @@ export class PermissionsGuard implements CanActivate {
       }
     }
 
-    const required = this.reflector.getAllAndOverride<ModulePermission[]>(
+    const required = this.reflector.getAllAndOverride<PermissionRequirement[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
     );
     if (!required || required.length === 0) return true;
     if (!user) throw new ForbiddenException('Acces refuse');
 
-    const ok = required.some((m) =>
-      hasPermission(user.role, user.permissions, m),
+    const ok = required.some((r) =>
+      hasCrudPermission(user.role, user.permissions, r.module, r.action),
     );
-    if (!ok) throw new ForbiddenException('Permission insuffisante pour ce module');
+    if (!ok) {
+      throw new ForbiddenException(
+        `Permission insuffisante (${required.map((r) => `${r.module}:${r.action}`).join(' ou ')})`,
+      );
+    }
     return true;
   }
 }

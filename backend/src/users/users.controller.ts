@@ -53,13 +53,14 @@ export class UsersController {
     return this.users.updateProfile(user.id, dto);
   }
 
+  @RequirePermission('users', 'read')
   @Get('modules')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   modules() {
     return this.users.modulesCatalog();
   }
 
+  @RequirePermission('maintenance', 'read')
   @Get('assignees')
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -67,35 +68,34 @@ export class UsersController {
     RoleUtilisateur.FACTURATION,
     RoleUtilisateur.LECTURE,
   )
-  @RequirePermission('maintenance')
   assignees() {
     return this.users.listAssignees();
   }
 
+  @RequirePermission('users', 'read')
   @Get()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   findAll() {
     return this.users.findAll();
   }
 
+  @RequirePermission('users', 'read')
   @Get(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   findOne(@Param('id') id: string) {
     return this.users.findOne(id);
   }
 
+  @RequirePermission('users', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   create(@CurrentUser() actor: AuthUser, @Body() dto: CreateUserDto) {
     return this.users.create(dto, actor.id);
   }
 
+  @RequirePermission('users', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   update(
     @CurrentUser() actor: AuthUser,
     @Param('id') id: string,
@@ -104,9 +104,9 @@ export class UsersController {
     return this.users.update(id, dto, actor.id);
   }
 
+  @RequirePermission('users', 'update')
   @Post(':id/reset-password')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   resetPassword(@CurrentUser() actor: AuthUser, @Param('id') id: string) {
     return this.users.resetPassword(id, actor.id);
   }

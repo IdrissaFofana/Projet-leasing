@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { AffectationDetailModal } from '@/components/affectations/AffectationDetailModal';
 import { DataTableShell, SortTh, TableActions, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
 import { formatDate, formatTime } from '@/lib/format';
@@ -97,6 +99,7 @@ function matchesRecence(datePose: string, recence: RecenceFilter): boolean {
 }
 
 export default function AffectationsPage() {
+  const { confirm } = useFeedback();
   const [rows, setRows] = useState<Affectation[]>([]);
   const [printers, setPrinters] = useState<Imprimante[]>([]);
   const [modeles, setModeles] = useState<ModeleCartouche[]>([]);
@@ -294,9 +297,12 @@ export default function AffectationsPage() {
 
   async function removeRow(row: Affectation) {
     if (
-      !window.confirm(
-        `Supprimer la pose ${row.code} ? Le stock des cartouches sera rétabli.`,
-      )
+      !(await confirm({
+        title: 'Confirmation',
+        message: `Supprimer la pose ${row.code} ? Le stock des cartouches sera rétabli.`,
+        danger: true,
+        confirmLabel: 'Supprimer',
+      }))
     ) {
       return;
     }
@@ -357,7 +363,7 @@ export default function AffectationsPage() {
       <div className="page-head page-head-row">
         <div>
           <h1>Affectations</h1>
-          <p>Cliquez une ligne pour voir l’imprimante et les cartouches posées</p>
+          <p>Cliquez une ligne pour voir le copieur et les cartouches posées</p>
         </div>
         <button type="button" className="btn btn-esay" onClick={openCreate}>
           + Nouvelle pose
@@ -391,8 +397,14 @@ export default function AffectationsPage() {
         </span>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <Modal
         open={open}
@@ -470,7 +482,7 @@ export default function AffectationsPage() {
             </div>
           </div>
           <div className="modal-form-row">
-            <label>N° série imprimante</label>
+            <label>N° série copieur</label>
             <div className="modal-field">
               <select
                 className="modal-select"

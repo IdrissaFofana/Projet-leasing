@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { MODULES, resolvePermissions } from '../common/auth/permissions';
+import { allPermissionKeys, resolvePermissions } from '../common/auth/permissions';
 import { PrismaService } from '../prisma/prisma.service';
 
 type JwtPayload = {
@@ -40,7 +40,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const rm = user.roleMetier?.actif ? user.roleMetier : null;
     const permissions = rm
       ? rm.code === 'ADMIN'
-        ? [...MODULES]
+        ? allPermissionKeys()
         : resolvePermissions(user.role, rm.permissions, { fromRoleMetier: true })
       : resolvePermissions(user.role, user.permissions);
 

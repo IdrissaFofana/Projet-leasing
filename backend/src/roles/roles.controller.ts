@@ -25,37 +25,37 @@ import { RolesService } from './roles.service';
 export class RolesController {
   constructor(private readonly roles: RolesService) {}
 
+  @RequirePermission('users', 'read')
   @Get()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   findAll() {
     return this.roles.findAll();
   }
 
+  @RequirePermission('users', 'read')
   @Get(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   findOne(@Param('id') id: string) {
     return this.roles.findOne(id);
   }
 
+  @RequirePermission('users', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   create(@Body() dto: CreateRoleDto) {
     return this.roles.create(dto);
   }
 
+  @RequirePermission('users', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
     return this.roles.update(id, dto);
   }
 
+  @RequirePermission('users', 'delete')
   @Delete(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('users')
   remove(@Param('id') id: string) {
     return this.roles.remove(id);
   }

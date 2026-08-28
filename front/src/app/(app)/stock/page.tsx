@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, TableActions, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { StockModeleModal } from '@/components/stock/StockModeleModal';
 import { api, ApiError } from '@/lib/api';
@@ -178,8 +179,14 @@ export default function StockPage() {
         </label>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <Modal
         open={open}

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import { currentMois } from '@/lib/format';
 import type { AssistanceQuota } from '@/lib/types';
@@ -41,19 +42,19 @@ export default function MaintenanceQuotasPage() {
       <div className="page-head page-head-row">
         <div>
           <h1>Quotas assistances</h1>
-          <p>3 assistances prévues par imprimante et par mois</p>
+          <p>3 assistances prévues par copieur et par mois</p>
         </div>
         <input className="input" type="month" value={mois} onChange={(e) => setMois(e.target.value)} />
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
+      <PageFeedback error={error} onDismiss={() => setError(null)} />
 
       {quota ? (
         <div className="panel" style={{ marginBottom: '1rem' }}>
           <p>
             {quota.incomplete === 0
-              ? `Toutes les imprimantes ont atteint ${quota.prevuesParImprimante} assistances pour ${quota.mois}.`
-              : `${quota.incomplete} imprimante(s) sous le quota ${quota.prevuesParImprimante}/mois.`}
+              ? `Tous les copieurs ont atteint ${quota.prevuesParImprimante} assistances pour ${quota.mois}.`
+              : `${quota.incomplete} copieur(s) sous le quota ${quota.prevuesParImprimante}/mois.`}
           </p>
         </div>
       ) : null}
@@ -62,7 +63,7 @@ export default function MaintenanceQuotasPage() {
         <table className="data-table">
           <thead>
             <tr>
-              <SortTh label="Imprimante" sortKey="code" activeKey={sortKey} direction={sortDir} onSort={toggle} />
+              <SortTh label="Copieur" sortKey="code" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Localisation" sortKey="localisation" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Faites" sortKey="faites" activeKey={sortKey} direction={sortDir} onSort={toggle} align="right" />
               <SortTh label="Restantes" sortKey="restantes" activeKey={sortKey} direction={sortDir} onSort={toggle} align="right" />

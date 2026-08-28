@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
 import type { ManagedUser, RoleMetier } from '@/lib/types';
@@ -21,11 +23,11 @@ const emptyForm = (roleMetierId = ''): FormState => ({
 });
 
 export default function ComptesUtilisateursPage() {
+  const { showAlert } = useFeedback();
   const [rows, setRows] = useState<ManagedUser[]>([]);
   const [roles, setRoles] = useState<RoleMetier[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
-  const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ManagedUser | null>(null);
   const [saving, setSaving] = useState(false);
@@ -55,7 +57,6 @@ export default function ComptesUtilisateursPage() {
 
   function openCreate() {
     setEditing(null);
-    setTempPassword(null);
     setError(null);
     setOk(null);
     setForm(emptyForm(defaultRoleId()));
@@ -64,7 +65,6 @@ export default function ComptesUtilisateursPage() {
 
   function openEdit(u: ManagedUser) {
     setEditing(u);
-    setTempPassword(null);
     setError(null);
     setOk(null);
     setForm({
@@ -97,8 +97,15 @@ export default function ComptesUtilisateursPage() {
           roleMetierId: form.roleMetierId || undefined,
         });
         setOk(`${created.nom} créé`);
-        if (created.temporaryPassword) setTempPassword(created.temporaryPassword);
-        else setOpen(false);
+        if (created.temporaryPassword) {
+          const pwd = created.temporaryPassword;
+          showAlert({
+            variant: 'success',
+            title: 'Mot de passe temporaire',
+            message: `Mot de passe temporaire : ${pwd} (changement obligatoire à la 1ʳᵉ connexion)`,
+          });
+        }
+        setOpen(false);
       }
       await load();
     } catch (err) {
@@ -131,26 +138,14 @@ export default function ComptesUtilisateursPage() {
         </button>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
-      {tempPassword ? (
-        <div
-          className="msg-ok"
-          style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}
-        >
-          <span>
-            Mot de passe temporaire : <strong className="mono">{tempPassword}</strong>
-            {' '}(changement obligatoire à la 1ʳᵉ connexion)
-          </span>
-          <button
-            type="button"
-            className="btn btn-soft"
-            onClick={() => void navigator.clipboard.writeText(tempPassword)}
-          >
-            Copier
-          </button>
-        </div>
-      ) : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <Modal
         open={open}
@@ -222,14 +217,6 @@ export default function ComptesUtilisateursPage() {
                   />
                   Compte actif
                 </label>
-              </div>
-            </div>
-          ) : null}
-          {tempPassword ? (
-            <div className="modal-form-row">
-              <label>MDP temp.</label>
-              <div className="modal-field">
-                <code className="mono">{tempPassword}</code>
               </div>
             </div>
           ) : null}

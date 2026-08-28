@@ -1,30 +1,49 @@
 'use client';
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { CrudPermissionsEditor } from '@/components/CrudPermissionsEditor';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
-import { MODULE_LABELS, MODULES, type ModulePermission } from '@/lib/permissions';
+import {
+  allPermissionKeys,
+  normalizePermissions,
+  permissionKey,
+  type PermissionKey,
+} from '@/lib/permissions';
 import type { ManagedUser, RoleMetier } from '@/lib/types';
 
 type RoleForm = {
   code: string;
   libelle: string;
   description: string;
-  permissions: ModulePermission[];
+  permissions: PermissionKey[];
   actif: boolean;
 };
+
+const DEFAULT_ROLE_PERMS: PermissionKey[] = [
+  permissionKey('dashboard', 'read'),
+  permissionKey('messages', 'read'),
+  permissionKey('messages', 'create'),
+];
 
 const emptyRole = (): RoleForm => ({
   code: '',
   libelle: '',
   description: '',
-  permissions: ['dashboard', 'messages'],
+  permissions: DEFAULT_ROLE_PERMS,
   actif: true,
 });
 
+function countPermissions(perms: string[] | undefined): number {
+  return normalizePermissions(perms ?? []).length;
+}
+
 export default function RolesPermissionsPage() {
+  const { confirm } = useFeedback();
   const { refreshUser } = useAuth();
   const [roles, setRoles] = useState<RoleMetier[]>([]);
   const [users, setUsers] = useState<ManagedUser[]>([]);
@@ -37,9 +56,9 @@ export default function RolesPermissionsPage() {
   const [roleForm, setRoleForm] = useState<RoleForm>(emptyRole());
   const [savingRole, setSavingRole] = useState(false);
 
-  /** Rôle sélectionné pour configurer les permissions (panneau dédié) */
+  const [permsOpen, setPermsOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [draftPerms, setDraftPerms] = useState<ModulePermission[]>([]);
+  const [draftPerms, setDraftPerms] = useState<PermissionKey[]>([]);
   const [savingPerms, setSavingPerms] = useState(false);
 
   const [assignOpen, setAssignOpen] = useState(false);
@@ -65,22 +84,19 @@ export default function RolesPermissionsPage() {
 
   useEffect(() => {
     void load()
-      .then((r) => {
-        if (!selectedId && r[0]) {
-          setSelectedId(r[0].id);
-          setDraftPerms((r[0].permissions ?? []) as ModulePermission[]);
-        }
-      })
       .catch((e) => setError(e instanceof ApiError ? e.message : 'Chargement impossible'))
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function selectRole(r: RoleMetier) {
+  function openPermissions(r: RoleMetier) {
     setSelectedId(r.id);
     setDraftPerms(
-      r.code === 'ADMIN' ? [...MODULES] : ((r.permissions ?? []) as ModulePermission[]),
+      r.code === 'ADMIN'
+        ? allPermissionKeys()
+        : normalizePermissions(r.permissions ?? []),
     );
+    setPermsOpen(true);
     setOk(null);
     setError(null);
   }
@@ -99,29 +115,15 @@ export default function RolesPermissionsPage() {
       code: r.code,
       libelle: r.libelle,
       description: r.description ?? '',
-      permissions: (r.permissions ?? []) as ModulePermission[],
+      permissions:
+        r.code === 'ADMIN'
+          ? allPermissionKeys()
+          : normalizePermissions(r.permissions ?? []),
       actif: r.actif,
     });
     setRoleOpen(true);
     setError(null);
     setOk(null);
-  }
-
-  function toggleDraft(m: ModulePermission) {
-    if (selected?.code === 'ADMIN') return;
-    setDraftPerms((prev) =>
-      prev.includes(m) ? prev.filter((p) => p !== m) : [...prev, m],
-    );
-  }
-
-  function toggleFormPerm(m: ModulePermission) {
-    if (editingRole?.code === 'ADMIN') return;
-    setRoleForm((f) => ({
-      ...f,
-      permissions: f.permissions.includes(m)
-        ? f.permissions.filter((p) => p !== m)
-        : [...f.permissions, m],
-    }));
   }
 
   async function savePermissions() {
@@ -132,14 +134,10 @@ export default function RolesPermissionsPage() {
     try {
       await api.roles.update(selected.id, { permissions: draftPerms });
       setOk(
-        `Permissions du rôle « ${selected.libelle} » enregistrées (${draftPerms.length} module(s)). Les utilisateurs liés sont mis à jour.`,
+        `Permissions du rôle « ${selected.libelle} » enregistrées (${draftPerms.length} droit(s)). Les utilisateurs liés sont mis à jour.`,
       );
-      const r = await load();
-      const fresh = r.find((x) => x.id === selected.id);
-      if (fresh) {
-        setDraftPerms((fresh.permissions ?? []) as ModulePermission[]);
-      }
-      // Rafraîchir la session si le rôle modifié nous concerne
+      await load();
+      setPermsOpen(false);
       await refreshUser().catch(() => null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Enregistrement impossible');
@@ -159,27 +157,22 @@ export default function RolesPermissionsPage() {
           libelle: roleForm.libelle.trim(),
           description: roleForm.description.trim() || null,
           permissions:
-            editingRole.code === 'ADMIN' ? [...MODULES] : roleForm.permissions,
+            editingRole.code === 'ADMIN' ? allPermissionKeys() : roleForm.permissions,
           actif: roleForm.actif,
         });
         setOk(`Rôle « ${roleForm.libelle} » mis à jour`);
-        setSelectedId(editingRole.id);
-        setDraftPerms(
-          editingRole.code === 'ADMIN' ? [...MODULES] : roleForm.permissions,
-        );
       } else {
-        const created = await api.roles.create({
+        await api.roles.create({
           code: roleForm.code.trim().toUpperCase(),
           libelle: roleForm.libelle.trim(),
           description: roleForm.description.trim() || undefined,
           permissions: roleForm.permissions,
         });
         setOk(`Rôle « ${roleForm.libelle} » créé`);
-        setSelectedId(created.id);
-        setDraftPerms((created.permissions ?? []) as ModulePermission[]);
       }
       setRoleOpen(false);
       await load();
+      await refreshUser().catch(() => null);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Enregistrement impossible');
     } finally {
@@ -189,7 +182,15 @@ export default function RolesPermissionsPage() {
 
   async function deleteRole(r: RoleMetier) {
     if (r.systeme) return;
-    if (!window.confirm(`Supprimer le rôle « ${r.libelle} » ?`)) return;
+    if (
+      !(await confirm({
+        title: 'Confirmation',
+        message: `Supprimer le rôle « ${r.libelle} » ?`,
+        danger: true,
+        confirmLabel: 'Supprimer',
+      }))
+    )
+      return;
     setError(null);
     try {
       await api.roles.remove(r.id);
@@ -247,11 +248,14 @@ export default function RolesPermissionsPage() {
     [users, usersSort],
   );
 
+  const normalizedSelected = selected
+    ? normalizePermissions(selected.permissions ?? [])
+    : [];
   const dirty =
     selected &&
     selected.code !== 'ADMIN' &&
     JSON.stringify([...draftPerms].sort()) !==
-      JSON.stringify([...(selected.permissions ?? [])].sort());
+      JSON.stringify([...normalizedSelected].sort());
 
   return (
     <>
@@ -259,7 +263,7 @@ export default function RolesPermissionsPage() {
         <div>
           <h1>Rôles & permissions</h1>
           <p>
-            Créez des rôles, cochez les modules autorisés, puis attribuez le rôle aux
+            Créez des rôles, définissez les droits CRUD par module, puis attribuez le rôle aux
             utilisateurs
           </p>
         </div>
@@ -268,13 +272,20 @@ export default function RolesPermissionsPage() {
         </button>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <section className="panel anim-section" style={{ marginBottom: '1.25rem' }}>
         <h2>Catalogue des rôles</h2>
         <p className="muted" style={{ marginBottom: '0.75rem' }}>
-          Cliquez sur un rôle pour configurer ses permissions ci-dessous.
+          Cliquez sur Permissions pour ajuster lecture, création, modification et suppression par
+          module.
         </p>
         <DataTableShell loading={loading} empty={!loading && roles.length === 0} emptyMessage="Aucun rôle">
           <table className="data-table">
@@ -294,7 +305,7 @@ export default function RolesPermissionsPage() {
                   direction={rolesSort.sortDir}
                   onSort={rolesSort.toggle}
                 />
-                <th>Modules</th>
+                <th>Droits</th>
                 <SortTh
                   label="Users"
                   sortKey="users"
@@ -307,12 +318,7 @@ export default function RolesPermissionsPage() {
             </thead>
             <tbody>
               {sortedRoles.map((r) => (
-                <tr
-                  key={r.id}
-                  className={selectedId === r.id ? 'is-selected-row' : undefined}
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => selectRole(r)}
-                >
+                <tr key={r.id}>
                   <td>
                     {r.libelle}
                     {r.systeme ? (
@@ -325,13 +331,13 @@ export default function RolesPermissionsPage() {
                   <td>
                     {r.code === 'ADMIN'
                       ? 'Tous'
-                      : r.permissions?.length
-                        ? `${r.permissions.length} module(s)`
+                      : countPermissions(r.permissions)
+                        ? `${countPermissions(r.permissions)} droit(s)`
                         : 'Aucun'}
                   </td>
                   <td>{r._count?.utilisateurs ?? 0}</td>
-                  <td className="col-actions" onClick={(e) => e.stopPropagation()}>
-                    <button type="button" className="btn btn-soft" onClick={() => selectRole(r)}>
+                  <td className="col-actions">
+                    <button type="button" className="btn btn-soft" onClick={() => openPermissions(r)}>
                       Permissions
                     </button>{' '}
                     <button type="button" className="btn btn-soft" onClick={() => openEditRole(r)}>
@@ -349,55 +355,6 @@ export default function RolesPermissionsPage() {
           </table>
         </DataTableShell>
       </section>
-
-      {selected ? (
-        <section className="panel anim-section perms-config" style={{ marginBottom: '1.25rem' }}>
-          <div className="page-head-row" style={{ marginBottom: '0.85rem' }}>
-            <div>
-              <h2>Permissions — {selected.libelle}</h2>
-              <p className="muted">
-                Cochez les fonctionnalités accessibles pour ce rôle. Les menus correspondants
-                s’affichent uniquement si la permission est accordée.
-              </p>
-            </div>
-            {selected.code !== 'ADMIN' ? (
-              <button
-                type="button"
-                className="btn btn-esay"
-                disabled={savingPerms || !dirty}
-                onClick={() => void savePermissions()}
-              >
-                {savingPerms ? 'Enregistrement…' : 'Enregistrer les permissions'}
-              </button>
-            ) : null}
-          </div>
-
-          {selected.code === 'ADMIN' ? (
-            <p className="muted">Administrateur : accès complet à tous les modules (non modifiable).</p>
-          ) : (
-            <div className="perms-grid">
-              {MODULES.map((m) => {
-                const on = draftPerms.includes(m);
-                return (
-                  <label key={m} className={`perms-chip${on ? ' is-on' : ''}`}>
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={() => toggleDraft(m)}
-                    />
-                    <span>{MODULE_LABELS[m]}</span>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-          {dirty ? (
-            <p className="muted" style={{ marginTop: '0.75rem' }}>
-              Modifications non enregistrées.
-            </p>
-          ) : null}
-        </section>
-      ) : null}
 
       <section className="panel anim-section">
         <h2>Attribution aux utilisateurs</h2>
@@ -456,7 +413,7 @@ export default function RolesPermissionsPage() {
         wide
         eyebrow={editingRole ? 'MODIFIER' : 'NOUVEAU'}
         title={editingRole ? 'Modifier le rôle' : 'Nouveau rôle'}
-        subtitle="Définissez le libellé et les modules dès la création."
+        subtitle="Définissez le libellé et les droits CRUD dès la création."
         onClose={() => setRoleOpen(false)}
         footer={
           <>
@@ -528,26 +485,15 @@ export default function RolesPermissionsPage() {
             </div>
           ) : null}
           <div className="modal-form-row is-top">
-            <label>Modules</label>
+            <label>Droits CRUD</label>
             <div className="modal-field">
               {editingRole?.code === 'ADMIN' ? (
                 <p className="muted">Administrateur : accès complet.</p>
               ) : (
-                <div className="perms-grid">
-                  {MODULES.map((m) => (
-                    <label
-                      key={m}
-                      className={`perms-chip${roleForm.permissions.includes(m) ? ' is-on' : ''}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={roleForm.permissions.includes(m)}
-                        onChange={() => toggleFormPerm(m)}
-                      />
-                      <span>{MODULE_LABELS[m]}</span>
-                    </label>
-                  ))}
-                </div>
+                <CrudPermissionsEditor
+                  value={roleForm.permissions}
+                  onChange={(permissions) => setRoleForm((f) => ({ ...f, permissions }))}
+                />
               )}
             </div>
           </div>
@@ -555,10 +501,61 @@ export default function RolesPermissionsPage() {
       </Modal>
 
       <Modal
+        open={permsOpen && !!selected}
+        wide
+        eyebrow="PERMISSIONS"
+        title={selected ? `Permissions — ${selected.libelle}` : 'Permissions'}
+        subtitle="Cochez les actions autorisées (lecture, création, modification, suppression) pour chaque module."
+        onClose={() => {
+          setPermsOpen(false);
+          setSelectedId(null);
+        }}
+        footer={
+          <>
+            <ModalCloseButton
+              onClick={() => {
+                setPermsOpen(false);
+                setSelectedId(null);
+              }}
+              label="Fermer"
+            />
+            {selected && selected.code !== 'ADMIN' ? (
+              <button
+                type="button"
+                className="btn-modal btn-modal-primary"
+                disabled={savingPerms || !dirty}
+                onClick={() => void savePermissions()}
+              >
+                {savingPerms ? 'Enregistrement…' : 'Enregistrer'}
+              </button>
+            ) : null}
+          </>
+        }
+      >
+        {selected?.code === 'ADMIN' ? (
+          <p className="muted">
+            Administrateur : tous les droits sur tous les modules (non modifiable).
+          </p>
+        ) : (
+          <>
+            <CrudPermissionsEditor
+              value={draftPerms}
+              onChange={setDraftPerms}
+            />
+            {dirty ? (
+              <p className="muted" style={{ marginTop: '0.75rem' }}>
+                Modifications non enregistrées.
+              </p>
+            ) : null}
+          </>
+        )}
+      </Modal>
+
+      <Modal
         open={assignOpen}
         eyebrow="ATTRIBUTION"
         title={assignUser ? `Rôle — ${assignUser.nom}` : 'Attribuer'}
-        subtitle="Le rôle applique automatiquement ses permissions modules."
+        subtitle="Le rôle applique automatiquement ses droits CRUD."
         onClose={() => setAssignOpen(false)}
         footer={
           <>

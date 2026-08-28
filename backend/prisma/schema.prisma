@@ -179,6 +179,18 @@ model Service {
   imprimantes Imprimante[]
 }
 
+model Client {
+  id         String   @id @default(cuid())
+  nom        String   @unique
+  telephone  String?
+  email      String?
+  actif      Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  stockProduits StockProduit[]
+}
+
 model TarifLeasing {
   id           String    @id @default(cuid())
   type         TypeTarif @unique
@@ -692,4 +704,47 @@ model MessageInterne {
   @@index([destinataireId, createdAt])
   @@index([expediteurId, createdAt])
   @@index([destinataireId, luAt])
+}
+
+// -----------------------------------------------------------------------------
+// STOCK PRODUITS (hors leasing copieurs) — suivi réceptions / livraisons
+// -----------------------------------------------------------------------------
+
+enum StatutStockProduit {
+  RECEPTION_EN_ATTENTE
+  EN_STOCK
+  PARTIELLEMENT_LIVRE
+  LIVRE
+  ANNULE
+}
+
+/// Une ligne = une réception de produit (puis livraisons cumulées sur la même ligne)
+model StockProduit {
+  id            String             @id @default(cuid())
+  numero        Int                @unique
+  designation   String
+  reference     String?
+  fournisseur   String?
+  qteRecue      Int                @default(0)
+  dateReception DateTime?          @db.Date
+  bonReception  String?
+  qteLivree     Int                @default(0)
+  dateLivraison DateTime?          @db.Date
+  destinataire  String?
+  clientId      String?
+  client        Client?            @relation(fields: [clientId], references: [id])
+  bonLivraison  String?
+  statut        StatutStockProduit @default(RECEPTION_EN_ATTENTE)
+  /// Si true, le statut n’est plus recalculé automatiquement
+  statutManuel  Boolean            @default(false)
+  observations  String?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([statut])
+  @@index([dateReception])
+  @@index([destinataire])
+  @@index([clientId])
+  @@index([fournisseur])
+  @@index([designation])
 }

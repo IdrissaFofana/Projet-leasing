@@ -24,12 +24,16 @@ import type {
   ModulesCatalog,
   MonthlyView,
   NamedRef,
+  ClientRef,
   ReadingsMatrix,
   Releve,
   AssistanceQuota,
   RoleMetier,
   StatutImprimante,
   StockMouvementsResponse,
+  StockProduit,
+  StockProduitSummary,
+  StatutStockProduit,
   Tarif,
   UserAssignee,
   UserProfile,
@@ -227,6 +231,18 @@ export const api = {
       request<NamedRef>('/services', { method: 'POST', body: JSON.stringify({ nom }) }),
     update: (id: string, data: { nom?: string; actif?: boolean }) =>
       request<NamedRef>(`/services/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  },
+  clients: {
+    list: () => request<ClientRef[]>('/clients'),
+    create: (data: { nom: string; telephone?: string; email?: string }) =>
+      request<ClientRef>('/clients', { method: 'POST', body: JSON.stringify(data) }),
+    update: (
+      id: string,
+      data: { nom?: string; telephone?: string | null; email?: string | null; actif?: boolean },
+    ) =>
+      request<ClientRef>(`/clients/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    remove: (id: string) =>
+      request<{ ok: boolean; unlinked: number }>(`/clients/${id}`, { method: 'DELETE' }),
   },
   tarifs: {
     list: () => request<Tarif[]>('/tarifs'),
@@ -522,6 +538,46 @@ export const api = {
       }),
     remove: (id: string) =>
       request<{ ok: boolean }>(`/roles/${id}`, { method: 'DELETE' }),
+  },
+
+  stockProduits: {
+    list: (
+      params: {
+        q?: string;
+        statut?: StatutStockProduit;
+        fournisseur?: string;
+        destinataire?: string;
+      } = {},
+    ) => request<StockProduit[]>(`/stock-produits${qs(params)}`),
+    summary: () => request<StockProduitSummary>('/stock-produits/summary'),
+    get: (id: string) => request<StockProduit>(`/stock-produits/${id}`),
+    create: (data: Record<string, unknown>) =>
+      request<StockProduit>('/stock-produits', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    update: (id: string, data: Record<string, unknown>) =>
+      request<StockProduit>(`/stock-produits/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }),
+    sortie: (
+      id: string,
+      data: {
+        qte: number;
+        dateLivraison?: string;
+        destinataire?: string;
+        clientId?: string;
+        bonLivraison?: string;
+        observations?: string;
+      },
+    ) =>
+      request<StockProduit>(`/stock-produits/${id}/sortie`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    remove: (id: string) =>
+      request<{ ok: boolean }>(`/stock-produits/${id}`, { method: 'DELETE' }),
   },
 
   notifications: {

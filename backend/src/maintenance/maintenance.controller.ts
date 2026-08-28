@@ -30,11 +30,11 @@ import { MaintenanceService } from './maintenance.service';
 @ApiTags('maintenance')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
-@RequirePermission('maintenance')
 @Controller('maintenance')
 export class MaintenanceController {
   constructor(private readonly maintenance: MaintenanceService) {}
 
+  @RequirePermission('maintenance', 'read')
   @Get()
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -46,6 +46,7 @@ export class MaintenanceController {
     return this.maintenance.findAll(query);
   }
 
+  @RequirePermission('maintenance', 'read')
   @Get('assistance-quota')
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -57,6 +58,7 @@ export class MaintenanceController {
     return this.maintenance.assistanceQuota(mois);
   }
 
+  @RequirePermission('maintenance', 'read')
   @Get(':id')
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -68,6 +70,7 @@ export class MaintenanceController {
     return this.maintenance.findOne(id);
   }
 
+  @RequirePermission('maintenance', 'read')
   @Get(':id/rapport')
   @Roles(
     RoleUtilisateur.ADMIN,
@@ -79,12 +82,14 @@ export class MaintenanceController {
     return this.maintenance.downloadRapport(id);
   }
 
+  @RequirePermission('maintenance', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   create(@Body() dto: CreateMaintenanceDto) {
     return this.maintenance.create(dto);
   }
 
+  @RequirePermission('maintenance', 'create')
   @Post(':id/rapport')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   @UseInterceptors(
@@ -107,12 +112,14 @@ export class MaintenanceController {
     return this.maintenance.uploadRapport(id, file);
   }
 
+  @RequirePermission('maintenance', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.TECHNICIEN)
   update(@Param('id') id: string, @Body() dto: UpdateMaintenanceDto) {
     return this.maintenance.update(id, dto);
   }
 
+  @RequirePermission('maintenance', 'delete')
   @Delete(':id')
   @Roles(RoleUtilisateur.ADMIN)
   remove(@Param('id') id: string) {

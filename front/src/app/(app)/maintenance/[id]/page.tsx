@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { FileDropzone } from '@/components/FileDropzone';
 import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
@@ -40,7 +41,7 @@ export default function MaintenanceDetailPage() {
     return (
       <div className="page-head">
         <h1>Intervention</h1>
-        <p className="form-error">{error}</p>
+        <PageFeedback error={error} onDismiss={() => setError(null)} />
       </div>
     );
   }
@@ -57,11 +58,17 @@ export default function MaintenanceDetailPage() {
         </p>
       </div>
 
-      {error ? <p className="form-error">{error}</p> : null}
-      {ok ? <p className="msg-ok">{ok}</p> : null}
+      <PageFeedback
+        error={error}
+        ok={ok}
+        onDismiss={() => {
+          setError(null);
+          setOk(null);
+        }}
+      />
 
       <div className="panel" style={{ marginBottom: '1rem' }}>
-        <h2>Imprimante</h2>
+        <h2>Copieur</h2>
         <div className="form-grid">
           <div>
             Code : <strong className="mono">{p?.code ?? '—'}</strong>

@@ -3,6 +3,8 @@
 import { FormEvent, useEffect, useId, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { TableActions } from '@/components/DataTable';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
 import { formatDate, formatTime, toInputDate, toInputTime } from '@/lib/format';
@@ -44,6 +46,7 @@ function skuBadge(statut: string) {
 }
 
 export function StockModeleModal({ modeleId, onClose, onChanged }: Props) {
+  const { confirm } = useFeedback();
   const titleId = useId();
   const open = !!modeleId;
   const [data, setData] = useState<StockMouvementsResponse | null>(null);
@@ -152,7 +155,14 @@ export function StockModeleModal({ modeleId, onClose, onChanged }: Props) {
 
   async function removeRow(row: StockMouvement) {
     const label = row.type === 'ENTREE' ? 'cette entrée' : 'cette sortie';
-    if (!confirm(`Supprimer ${label} ${row.code} (${COULEUR_LABEL[row.couleur]} × ${row.qte}) ?`)) {
+    if (
+      !(await confirm({
+        title: 'Confirmation',
+        message: `Supprimer ${label} ${row.code} (${COULEUR_LABEL[row.couleur]} × ${row.qte}) ?`,
+        danger: true,
+        confirmLabel: 'Supprimer',
+      }))
+    ) {
       return;
     }
     setError(null);
@@ -188,7 +198,7 @@ export function StockModeleModal({ modeleId, onClose, onChanged }: Props) {
           </div>
         ) : !modele ? (
           <div className="detail-modal-loading">
-            <p className="form-error">{error ?? 'Modèle introuvable'}</p>
+            <p>{error ?? 'Modèle introuvable'}</p>
             <button type="button" className="btn btn-soft" onClick={onClose}>
               Fermer
             </button>
@@ -231,7 +241,7 @@ export function StockModeleModal({ modeleId, onClose, onChanged }: Props) {
             </div>
 
             <div className="detail-modal-body">
-              {error ? <p className="form-error">{error}</p> : null}
+              <PageFeedback error={error} onDismiss={() => setError(null)} />
 
               {editing && form ? (
                 <form id="stock-mouvement-form" className="modal-form" onSubmit={saveEdit}>

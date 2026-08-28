@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { RoleUtilisateur } from '@prisma/client';
 import {
-  DEFAULT_PERMISSIONS_BY_ROLE,
+  allPermissionKeys,
+  DEFAULT_CRUD_BY_ROLE,
+  isValidPermissionKey,
+  normalizePermissions,
+  type ModulePermission,
   MODULES,
   resolvePermissions,
 } from '../common/auth/permissions';
@@ -20,6 +24,16 @@ const SYSTEM_CODES: RoleUtilisateur[] = [
   RoleUtilisateur.LECTURE,
 ];
 
+function filterValidPermissions(perms: string[]): string[] {
+  return normalizePermissions(
+    perms.filter(
+      (p) =>
+        isValidPermissionKey(p) ||
+        (MODULES as readonly string[]).includes(p),
+    ),
+  );
+}
+
 @Injectable()
 export class RolesService {
   constructor(private readonly prisma: PrismaService) {}
@@ -29,11 +43,20 @@ export class RolesService {
     for (const code of SYSTEM_CODES) {
       const permissions =
         code === RoleUtilisateur.ADMIN
-          ? [...MODULES]
-          : [...(DEFAULT_PERMISSIONS_BY_ROLE[code] ?? [])];
+          ? allPermissionKeys()
+          : [...(DEFAULT_CRUD_BY_ROLE[code] ?? [])];
       await this.prisma.roleMetier.upsert({
         where: { code },
-        update: {},
+        update: {
+          permissions: Array.from(
+            new Set([
+              ...normalizePermissions(await this.existingPerms(code)),
+              ...permissions,
+            ]),
+          ),
+          systeme: true,
+          actif: true,
+        },
         create: {
           code,
           libelle: code.charAt(0) + code.slice(1).toLowerCase(),
@@ -44,6 +67,11 @@ export class RolesService {
         },
       });
     }
+  }
+
+  private async existingPerms(code: string): Promise<string[]> {
+    const row = await this.prisma.roleMetier.findUnique({ where: { code } });
+    return row?.permissions ?? [];
   }
 
   async findAll() {
@@ -78,8 +106,7 @@ export class RolesService {
     const exists = await this.prisma.roleMetier.findUnique({ where: { code } });
     if (exists) throw new ConflictException('Code rôle déjà utilisé');
 
-    const permissions = (dto.permissions ?? [])
-      .filter((p) => (MODULES as readonly string[]).includes(p));
+    const permissions = filterValidPermissions(dto.permissions ?? []);
 
     return this.prisma.roleMetier.create({
       data: {
@@ -99,12 +126,11 @@ export class RolesService {
     const permissions =
       dto.permissions === undefined
         ? undefined
-        : dto.permissions.filter((p) => (MODULES as readonly string[]).includes(p));
+        : filterValidPermissions(dto.permissions);
 
-    // ADMIN système conserve toujours tous les modules
     const finalPerms =
       current.code === 'ADMIN' && permissions !== undefined
-        ? [...MODULES]
+        ? allPermissionKeys()
         : permissions;
 
     const updated = await this.prisma.roleMetier.update({
@@ -121,12 +147,12 @@ export class RolesService {
       include: { _count: { select: { utilisateurs: true } } },
     });
 
-    // Propager les permissions aux utilisateurs liés
     if (finalPerms !== undefined) {
       await this.prisma.utilisateur.updateMany({
         where: { roleMetierId: id },
         data: {
-          permissions: current.code === 'ADMIN' ? [...MODULES] : finalPerms,
+          permissions:
+            current.code === 'ADMIN' ? allPermissionKeys() : finalPerms,
         },
       });
     }
@@ -148,7 +174,6 @@ export class RolesService {
     return { ok: true };
   }
 
-  /** Résout le rôle Prisma enum + permissions à partir d’un RoleMetier. */
   resolveAssignment(role: { code: string; permissions: string[] }) {
     const isSystem = (SYSTEM_CODES as string[]).includes(role.code);
     const enumRole = isSystem
@@ -156,7 +181,7 @@ export class RolesService {
       : RoleUtilisateur.LECTURE;
     const permissions =
       role.code === 'ADMIN'
-        ? [...MODULES]
+        ? allPermissionKeys()
         : resolvePermissions(enumRole, role.permissions, { fromRoleMetier: true });
     return { role: enumRole, permissions };
   }

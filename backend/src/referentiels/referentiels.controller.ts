@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RoleUtilisateur } from '@prisma/client';
 import { RequirePermission } from '../common/decorators/current-user.decorator';
@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CreateNamedDto, UpdateNamedDto } from './dto/named.dto';
+import { CreateClientDto, UpdateClientDto } from './dto/client.dto';
 import { CreateTarifDto, UpdateTarifDto } from './dto/tarif.dto';
 import { ReferentielsService } from './referentiels.service';
 
@@ -30,16 +31,16 @@ export class MarquesController {
     return this.ref.listNamed('marque');
   }
 
+  @RequirePermission('referentiels', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   create(@Body() dto: CreateNamedDto) {
     return this.ref.createNamed('marque', dto);
   }
 
+  @RequirePermission('referentiels', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   update(@Param('id') id: string, @Body() dto: UpdateNamedDto) {
     return this.ref.updateNamed('marque', id, dto);
   }
@@ -58,16 +59,16 @@ export class FournisseursController {
     return this.ref.listNamed('fournisseur');
   }
 
+  @RequirePermission('referentiels', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   create(@Body() dto: CreateNamedDto) {
     return this.ref.createNamed('fournisseur', dto);
   }
 
+  @RequirePermission('referentiels', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   update(@Param('id') id: string, @Body() dto: UpdateNamedDto) {
     return this.ref.updateNamed('fournisseur', id, dto);
   }
@@ -86,16 +87,16 @@ export class AgentsController {
     return this.ref.listNamed('agent');
   }
 
+  @RequirePermission('referentiels', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   create(@Body() dto: CreateNamedDto) {
     return this.ref.createNamed('agent', dto);
   }
 
+  @RequirePermission('referentiels', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   update(@Param('id') id: string, @Body() dto: UpdateNamedDto) {
     return this.ref.updateNamed('agent', id, dto);
   }
@@ -114,18 +115,53 @@ export class ServicesController {
     return this.ref.listNamed('service');
   }
 
+  @RequirePermission('referentiels', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   create(@Body() dto: CreateNamedDto) {
     return this.ref.createNamed('service', dto);
   }
 
+  @RequirePermission('referentiels', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   update(@Param('id') id: string, @Body() dto: UpdateNamedDto) {
     return this.ref.updateNamed('service', id, dto);
+  }
+}
+
+@ApiTags('clients')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+@Controller('clients')
+export class ClientsController {
+  constructor(private readonly ref: ReferentielsService) {}
+
+  @Get()
+  @Roles(...readRoles)
+  list() {
+    return this.ref.listClients();
+  }
+
+  @RequirePermission('referentiels', 'create')
+  @Post()
+  @Roles(RoleUtilisateur.ADMIN)
+  create(@Body() dto: CreateClientDto) {
+    return this.ref.createClient(dto);
+  }
+
+  @RequirePermission('referentiels', 'update')
+  @Patch(':id')
+  @Roles(RoleUtilisateur.ADMIN)
+  update(@Param('id') id: string, @Body() dto: UpdateClientDto) {
+    return this.ref.updateClient(id, dto);
+  }
+
+  @RequirePermission('referentiels', 'delete')
+  @Delete(':id')
+  @Roles(RoleUtilisateur.ADMIN)
+  remove(@Param('id') id: string) {
+    return this.ref.removeClient(id);
   }
 }
 
@@ -142,13 +178,14 @@ export class TarifsController {
     return this.ref.listTarifs();
   }
 
+  @RequirePermission('referentiels', 'create')
   @Post()
   @Roles(RoleUtilisateur.ADMIN)
-  @RequirePermission('referentiels')
   create(@Body() dto: CreateTarifDto) {
     return this.ref.createTarif(dto);
   }
 
+  @RequirePermission('referentiels', 'update')
   @Patch(':id')
   @Roles(RoleUtilisateur.ADMIN, RoleUtilisateur.FACTURATION)
   update(@Param('id') id: string, @Body() dto: UpdateTarifDto) {

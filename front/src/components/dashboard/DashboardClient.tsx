@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { BarChart, DonutChart, LineChart } from '@/components/dashboard/charts';
+import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { formatMoisLabel, formatMoney, lastMonths } from '@/lib/format';
@@ -27,7 +28,7 @@ type DashData = {
 };
 
 const SHORTCUTS = [
-  { href: '/imprimantes', label: 'Imprimantes', desc: 'Parc machines' },
+  { href: '/imprimantes', label: 'Copieurs', desc: 'Parc copieurs' },
   { href: '/releves', label: 'Relevés', desc: 'Compteurs' },
   { href: '/stock', label: 'Stock', desc: 'Cartouches' },
   { href: '/affectations', label: 'Poses', desc: 'Affectations' },
@@ -176,7 +177,10 @@ export function DashboardClient() {
     return (
       <div className="page-head">
         <h1>Tableau de bord</h1>
-        <p className="form-error">{error ?? 'Données indisponibles'}</p>
+        <PageFeedback
+          error={error ?? 'Données indisponibles'}
+          onDismiss={() => setError(null)}
+        />
         <button type="button" className="btn btn-esay" onClick={() => void load()}>
           Réessayer
         </button>
@@ -343,7 +347,7 @@ export function DashboardClient() {
               centerLabel="actives"
             />
           ) : (
-            <p className="empty-state">Aucune imprimante active</p>
+            <p className="empty-state">Aucun copieur actif</p>
           )}
         </section>
 
