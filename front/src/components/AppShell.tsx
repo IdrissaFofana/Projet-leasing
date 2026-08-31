@@ -282,7 +282,7 @@ function IconBtn({
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
   const title = pageTitle(pathname);
@@ -292,6 +292,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const menuRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  const lastPermSync = useRef(0);
+
+  useEffect(() => {
+    if (!user) return;
+    const now = Date.now();
+    if (now - lastPermSync.current < 3_000) return;
+    lastPermSync.current = now;
+    void refreshUser();
+  }, [pathname, user?.id, refreshUser]);
 
   const items = NAV.filter(
     (item) => !item.permission || userHasPermission(user, item.permission),

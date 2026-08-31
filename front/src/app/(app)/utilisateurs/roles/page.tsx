@@ -133,9 +133,9 @@ export default function RolesPermissionsPage() {
     setOk(null);
     try {
       await api.roles.update(selected.id, { permissions: draftPerms });
-      setOk(
-        `Permissions du rôle « ${selected.libelle} » enregistrées (${draftPerms.length} droit(s)). Les utilisateurs liés sont mis à jour.`,
-      );
+        setOk(
+          `Permissions du rôle « ${selected.libelle} » enregistrées (${draftPerms.length} droit(s)). Tous les utilisateurs liés ont été mis à jour.`,
+        );
       await load();
       setPermsOpen(false);
       await refreshUser().catch(() => null);
@@ -160,7 +160,11 @@ export default function RolesPermissionsPage() {
             editingRole.code === 'ADMIN' ? allPermissionKeys() : roleForm.permissions,
           actif: roleForm.actif,
         });
-        setOk(`Rôle « ${roleForm.libelle} » mis à jour`);
+        setOk(
+          editingRole.code === 'ADMIN' || JSON.stringify(roleForm.permissions.sort()) === JSON.stringify(normalizePermissions(editingRole.permissions ?? []).sort())
+            ? `Rôle « ${roleForm.libelle} » mis à jour`
+            : `Rôle « ${roleForm.libelle} » mis à jour — les utilisateurs liés héritent des nouveaux droits`,
+        );
       } else {
         await api.roles.create({
           code: roleForm.code.trim().toUpperCase(),
@@ -264,7 +268,8 @@ export default function RolesPermissionsPage() {
           <h1>Rôles & permissions</h1>
           <p>
             Créez des rôles, définissez les droits CRUD par module, puis attribuez le rôle aux
-            utilisateurs
+            utilisateurs. Les droits sont appliqués automatiquement : le menu se met à jour sans
+            reconnexion (navigation, retour sur l&apos;onglet, ou sous 1 minute).
           </p>
         </div>
         <button type="button" className="btn btn-esay" onClick={openCreateRole}>
@@ -284,8 +289,10 @@ export default function RolesPermissionsPage() {
       <section className="panel anim-section" style={{ marginBottom: '1.25rem' }}>
         <h2>Catalogue des rôles</h2>
         <p className="muted" style={{ marginBottom: '0.75rem' }}>
-          Cliquez sur Permissions pour ajuster lecture, création, modification et suppression par
-          module.
+          <strong>Modifier</strong> : libellé, description et droits CRUD.{' '}
+          <strong>Permissions</strong> : raccourci pour ajuster uniquement les droits. Si vous
+          modifiez les permissions d&apos;un rôle, tous les utilisateurs liés sont mis à jour
+          automatiquement.
         </p>
         <DataTableShell loading={loading} empty={!loading && roles.length === 0} emptyMessage="Aucun rôle">
           <table className="data-table">
@@ -337,11 +344,11 @@ export default function RolesPermissionsPage() {
                   </td>
                   <td>{r._count?.utilisateurs ?? 0}</td>
                   <td className="col-actions">
+                    <button type="button" className="btn btn-soft" onClick={() => openEditRole(r)}>
+                      Modifier
+                    </button>{' '}
                     <button type="button" className="btn btn-soft" onClick={() => openPermissions(r)}>
                       Permissions
-                    </button>{' '}
-                    <button type="button" className="btn btn-soft" onClick={() => openEditRole(r)}>
-                      Infos
                     </button>{' '}
                     {!r.systeme ? (
                       <button type="button" className="btn btn-soft" onClick={() => void deleteRole(r)}>
@@ -413,7 +420,11 @@ export default function RolesPermissionsPage() {
         wide
         eyebrow={editingRole ? 'MODIFIER' : 'NOUVEAU'}
         title={editingRole ? 'Modifier le rôle' : 'Nouveau rôle'}
-        subtitle="Définissez le libellé et les droits CRUD dès la création."
+        subtitle={
+          editingRole
+            ? 'Modifiez le libellé, la description, le statut et les droits CRUD du rôle.'
+            : 'Définissez le libellé et les droits CRUD dès la création.'
+        }
         onClose={() => setRoleOpen(false)}
         footer={
           <>

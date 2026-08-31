@@ -29,9 +29,8 @@ export default function MotsDePassePage() {
     if (
       !(await confirm({
         title: 'Confirmation',
-        message: `Régénérer un mot de passe temporaire pour ${u.nom} ? L’utilisateur devra le redéfinir à la prochaine connexion.`,
-        danger: true,
-        confirmLabel: 'Régénérer',
+        message: `Le mot de passe de ${u.nom} sera remis à son adresse email (${u.email}). Un changement sera demandé à la prochaine connexion.`,
+        confirmLabel: 'Réinitialiser',
       }))
     ) {
       return;
@@ -44,13 +43,11 @@ export default function MotsDePassePage() {
       if (res.temporaryPassword) {
         showAlert({
           variant: 'success',
-          title: 'Mot de passe temporaire',
-          message: `Mot de passe temporaire : ${res.temporaryPassword} (changement obligatoire à la 1ʳᵉ connexion)`,
+          title: 'Mot de passe réinitialisé',
+          message: `Nouveau mot de passe : ${res.email} (identique à l'email de connexion).`,
         });
       }
-      setOk(
-        `Mot de passe régénéré pour ${u.nom}. Communiquez-le de façon sécurisée — redéfinition obligatoire à la connexion.`,
-      );
+      setOk(`Mot de passe réinitialisé pour ${u.nom}. Changement obligatoire à la prochaine connexion.`);
       await load();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Réinitialisation impossible');
@@ -74,8 +71,8 @@ export default function MotsDePassePage() {
       <div className="page-head">
         <h1>Réinitialisation des mots de passe</h1>
         <p>
-          Un mot de passe temporaire est généré. À la connexion avec ce mot de passe, le système
-          force la redéfinition.
+          Le mot de passe est remis à l&apos;adresse email de connexion. À la prochaine connexion,
+          l&apos;utilisateur devra le redéfinir.
         </p>
       </div>
 
@@ -121,7 +118,7 @@ export default function MotsDePassePage() {
                     disabled={!u.actif || busyId === u.id}
                     onClick={() => void resetPassword(u)}
                   >
-                    {busyId === u.id ? 'Génération…' : 'Réinitialiser'}
+                    {busyId === u.id ? 'Réinitialisation…' : 'Réinitialiser'}
                   </button>
                 </td>
               </tr>

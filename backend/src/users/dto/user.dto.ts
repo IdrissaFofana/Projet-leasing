@@ -50,6 +50,11 @@ export class UpdateUserDto {
   @IsString()
   nom?: string;
 
+  @ApiPropertyOptional({ description: 'Nouvel email de connexion' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

@@ -35,6 +35,29 @@ type AuthContextValue = {
   hasCrudPermission: (module: ModulePermission, action: CrudAction) => boolean;
 };
 
+function permissionsEqual(a: string[] | undefined, b: string[] | undefined): boolean {
+  if (!a?.length && !b?.length) return true;
+  if (!a || !b || a.length !== b.length) return false;
+  const sa = [...a].sort();
+  const sb = [...b].sort();
+  return sa.every((p, i) => p === sb[i]);
+}
+
+function sameSessionUser(prev: AuthUser | null, next: AuthUser): boolean {
+  if (!prev) return false;
+  return (
+    prev.id === next.id &&
+    prev.role === next.role &&
+    prev.email === next.email &&
+    prev.nom === next.nom &&
+    prev.mustChangePassword === next.mustChangePassword &&
+    permissionsEqual(prev.permissions, next.permissions)
+  );
+}
+
+/** Intervalle de resync silencieuse des droits (ms). */
+const PERMS_SYNC_MS = 60_000;
+
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function normalizeUser(raw: AuthUser | (UserProfileLike & { permissions?: string[] })): AuthUser {
@@ -92,8 +115,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         permissions: me.effectivePermissions ?? me.permissions,
         mustChangePassword: me.mustChangePassword,
       });
-      setStoredUser(next);
-      setUserState(next);
+      setUserState((prev) => {
+        if (sameSessionUser(prev, next)) return prev;
+        setStoredUser(next);
+        return next;
+      });
       return next;
     } catch {
       return getStoredUser();
@@ -143,6 +169,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true;
     };
   }, []);
+
+  /** Resync droits : changement d’onglet, navigation, intervalle régulier. */
+  useEffect(() => {
+    if (!ready || !user) return;
+
+    const sync = () => {
+      void refreshUser();
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') sync();
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+    const intervalId = window.setInterval(sync, PERMS_SYNC_MS);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.clearInterval(intervalId);
+    };
+  }, [ready, user?.id, refreshUser]);
 
   const login = useCallback(async (email: string, password: string) => {
     const res = await api.login(email, password);

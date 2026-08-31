@@ -521,6 +521,8 @@ export const api = {
       }),
     resetPassword: (id: string) =>
       request<ManagedUser>(`/users/${id}/reset-password`, { method: 'POST' }),
+    remove: (id: string) =>
+      request<{ ok: boolean }>(`/users/${id}`, { method: 'DELETE' }),
   },
 
   roles: {

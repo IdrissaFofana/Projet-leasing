@@ -8,7 +8,6 @@ import * as bcrypt from 'bcrypt';
 import { AuditService } from '../audit/audit.service';
 import {
   allPermissionKeys,
-  generateTempPassword,
   MODULE_ACTIONS,
   MODULE_LABELS,
   MODULES,
@@ -179,6 +178,7 @@ export class UsersService {
     const before = await this.findOne(id);
     const data: {
       nom?: string;
+      email?: string;
       role?: CreateUserDto['role'];
       roleMetierId?: string | null;
       actif?: boolean;
@@ -190,6 +190,15 @@ export class UsersService {
       role: dto.role,
       actif: dto.actif,
     };
+
+    if (dto.email !== undefined) {
+      const email = dto.email.toLowerCase().trim();
+      if (email !== before.email) {
+        const taken = await this.prisma.utilisateur.findUnique({ where: { email } });
+        if (taken) throw new ConflictException('Email deja utilise');
+        data.email = email;
+      }
+    }
     if (dto.permissions !== undefined) data.permissions = dto.permissions;
     if (dto.mustChangePassword !== undefined) {
       data.mustChangePassword = dto.mustChangePassword;
@@ -222,6 +231,9 @@ export class UsersService {
 
     const changes: string[] = [];
     if (dto.nom && dto.nom !== before.nom) changes.push(`nom: ${before.nom} → ${dto.nom}`);
+    if (data.email && data.email !== before.email) {
+      changes.push(`email: ${before.email} → ${data.email}`);
+    }
     if (dto.role && dto.role !== before.role) changes.push(`rôle: ${before.role} → ${dto.role}`);
     if (dto.roleMetierId !== undefined) {
       changes.push(
@@ -255,10 +267,10 @@ export class UsersService {
     };
   }
 
-  /** Régénère un mot de passe temporaire et force le changement. */
+  /** Réinitialise le mot de passe sur l'email de connexion et force le changement. */
   async resetPassword(id: string, actorId?: string) {
     const target = await this.findOne(id);
-    const plain = generateTempPassword(10);
+    const plain = target.email;
     const user = await this.prisma.utilisateur.update({
       where: { id },
       data: {
@@ -274,7 +286,7 @@ export class UsersService {
         action: 'PASSWORD_RESET',
         entite: 'utilisateur',
         entiteId: id,
-        details: `Réinitialisation MDP pour ${target.email} — connexion avec MDP temporaire puis redéfinition obligatoire`,
+        details: `Réinitialisation MDP pour ${target.email} — MDP = email · changement obligatoire à la connexion`,
         resultat: 'SUCCESS',
       })
       .catch(() => undefined);
@@ -285,6 +297,49 @@ export class UsersService {
       temporaryPassword: plain,
       generatedPassword: true,
     };
+  }
+
+  async remove(id: string, actorId?: string) {
+    if (actorId && actorId === id) {
+      throw new BadRequestException('Impossible de supprimer votre propre compte');
+    }
+
+    const target = await this.findOne(id);
+    const isAdmin =
+      target.role === 'ADMIN' || target.roleMetier?.code === 'ADMIN';
+    if (isAdmin) {
+      const adminCount = await this.prisma.utilisateur.count({
+        where: {
+          actif: true,
+          OR: [{ role: 'ADMIN' }, { roleMetier: { code: 'ADMIN' } }],
+        },
+      });
+      if (adminCount <= 1) {
+        throw new BadRequestException(
+          'Impossible de supprimer le dernier administrateur actif',
+        );
+      }
+    }
+
+    await this.prisma.auditLog.updateMany({
+      where: { userId: id },
+      data: { userId: null },
+    });
+
+    await this.prisma.utilisateur.delete({ where: { id } });
+
+    await this.audit
+      .log({
+        userId: actorId ?? null,
+        action: 'USER_DELETE',
+        entite: 'utilisateur',
+        entiteId: id,
+        details: `Suppression compte ${target.email} (${target.nom})`,
+        resultat: 'SUCCESS',
+      })
+      .catch(() => undefined);
+
+    return { ok: true };
   }
 
   async updateProfile(id: string, dto: UpdateProfileDto) {

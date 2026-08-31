@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -109,5 +110,12 @@ export class UsersController {
   @Roles(RoleUtilisateur.ADMIN)
   resetPassword(@CurrentUser() actor: AuthUser, @Param('id') id: string) {
     return this.users.resetPassword(id, actor.id);
+  }
+
+  @RequirePermission('users', 'delete')
+  @Delete(':id')
+  @Roles(RoleUtilisateur.ADMIN)
+  remove(@CurrentUser() actor: AuthUser, @Param('id') id: string) {
+    return this.users.remove(id, actor.id);
   }
 }

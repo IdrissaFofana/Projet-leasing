@@ -6,6 +6,7 @@ import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import type { ManagedUser, RoleMetier } from '@/lib/types';
 
 type FormState = {
@@ -23,7 +24,8 @@ const emptyForm = (roleMetierId = ''): FormState => ({
 });
 
 export default function ComptesUtilisateursPage() {
-  const { showAlert } = useFeedback();
+  const { user: currentUser } = useAuth();
+  const { confirm, showAlert } = useFeedback();
   const [rows, setRows] = useState<ManagedUser[]>([]);
   const [roles, setRoles] = useState<RoleMetier[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +33,7 @@ export default function ComptesUtilisateursPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ManagedUser | null>(null);
   const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState<FormState>(emptyForm());
   const { sortKey, sortDir, toggle, sort } = useTableSort<ManagedUser>('nom', 'asc');
@@ -85,6 +88,7 @@ export default function ComptesUtilisateursPage() {
       if (editing) {
         await api.users.update(editing.id, {
           nom: form.nom.trim(),
+          email: form.email.trim().toLowerCase(),
           roleMetierId: form.roleMetierId || undefined,
           actif: form.actif,
         });
@@ -114,6 +118,64 @@ export default function ComptesUtilisateursPage() {
     }
   }
 
+  async function resetPassword(u: ManagedUser) {
+    if (
+      !(await confirm({
+        title: 'Réinitialiser le mot de passe',
+        message: `Le mot de passe de ${u.nom} sera remis à son adresse email (${u.email}). Un changement sera demandé à la prochaine connexion.`,
+        confirmLabel: 'Réinitialiser',
+      }))
+    ) {
+      return;
+    }
+    setBusyId(u.id);
+    setError(null);
+    setOk(null);
+    try {
+      const res = await api.users.resetPassword(u.id);
+      showAlert({
+        variant: 'success',
+        title: 'Mot de passe réinitialisé',
+        message: `Nouveau mot de passe : ${res.email} (identique à l'email de connexion).`,
+      });
+      setOk(`Mot de passe réinitialisé pour ${u.nom}`);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Réinitialisation impossible');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteAccount(u: ManagedUser) {
+    if (currentUser?.id === u.id) {
+      setError('Vous ne pouvez pas supprimer votre propre compte');
+      return;
+    }
+    if (
+      !(await confirm({
+        title: 'Supprimer le compte',
+        message: `Supprimer définitivement le compte de ${u.nom} (${u.email}) ? Cette action est irréversible.`,
+        danger: true,
+        confirmLabel: 'Supprimer',
+      }))
+    ) {
+      return;
+    }
+    setBusyId(u.id);
+    setError(null);
+    setOk(null);
+    try {
+      await api.users.remove(u.id);
+      setOk(`Compte ${u.nom} supprimé`);
+      await load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Suppression impossible');
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const sorted = useMemo(
     () =>
       sort(rows, (row, key) => {
@@ -130,7 +192,7 @@ export default function ComptesUtilisateursPage() {
       <div className="page-head page-head-row">
         <div>
           <h1>Comptes utilisateurs</h1>
-          <p>Création, modification et activation / désactivation des comptes</p>
+          <p>Création, modification, réinitialisation MDP et suppression des comptes</p>
         </div>
         <button type="button" className="btn btn-esay" onClick={openCreate}>
           + Nouvel utilisateur
@@ -152,7 +214,7 @@ export default function ComptesUtilisateursPage() {
         title={editing ? 'Modifier le compte' : 'Nouveau compte'}
         subtitle={
           editing
-            ? undefined
+            ? 'Vous pouvez modifier l’email de connexion, le rôle et le statut du compte.'
             : 'Le mot de passe initial est l\'adresse email. Un changement sera demandé à la première connexion.'
         }
         onClose={() => setOpen(false)}
@@ -178,13 +240,12 @@ export default function ComptesUtilisateursPage() {
             </div>
           </div>
           <div className="modal-form-row">
-            <label>Email</label>
+            <label>Email de connexion</label>
             <div className="modal-field">
               <input
                 className="modal-input"
                 type="email"
                 required
-                disabled={Boolean(editing)}
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
@@ -256,6 +317,22 @@ export default function ComptesUtilisateursPage() {
                 <td className="col-actions">
                   <button type="button" className="btn btn-soft" onClick={() => openEdit(u)}>
                     Modifier
+                  </button>{' '}
+                  <button
+                    type="button"
+                    className="btn btn-soft"
+                    disabled={!u.actif || busyId === u.id}
+                    onClick={() => void resetPassword(u)}
+                  >
+                    {busyId === u.id ? '…' : 'Réinit. MDP'}
+                  </button>{' '}
+                  <button
+                    type="button"
+                    className="btn btn-soft"
+                    disabled={currentUser?.id === u.id || busyId === u.id}
+                    onClick={() => void deleteAccount(u)}
+                  >
+                    Supprimer
                   </button>
                 </td>
               </tr>
