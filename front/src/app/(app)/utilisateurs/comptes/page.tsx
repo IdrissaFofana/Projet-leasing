@@ -97,12 +97,11 @@ export default function ComptesUtilisateursPage() {
           roleMetierId: form.roleMetierId || undefined,
         });
         setOk(`${created.nom} créé`);
-        if (created.temporaryPassword) {
-          const pwd = created.temporaryPassword;
+        if (created.generatedPassword) {
           showAlert({
             variant: 'success',
-            title: 'Mot de passe temporaire',
-            message: `Mot de passe temporaire : ${pwd} (changement obligatoire à la 1ʳᵉ connexion)`,
+            title: 'Compte créé',
+            message: `Mot de passe initial : ${created.email} (identique à l'adresse email). L'utilisateur devra le changer à la première connexion.`,
           });
         }
         setOpen(false);
@@ -151,7 +150,11 @@ export default function ComptesUtilisateursPage() {
         open={open}
         eyebrow={editing ? 'MODIFIER' : 'NOUVEAU'}
         title={editing ? 'Modifier le compte' : 'Nouveau compte'}
-        subtitle="Le mot de passe temporaire est généré automatiquement à la création."
+        subtitle={
+          editing
+            ? undefined
+            : 'Le mot de passe initial est l\'adresse email. Un changement sera demandé à la première connexion.'
+        }
         onClose={() => setOpen(false)}
         footer={
           <>

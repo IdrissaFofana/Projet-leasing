@@ -21,7 +21,7 @@ export class CreateUserDto {
   @IsString()
   nom!: string;
 
-  @ApiPropertyOptional({ description: 'Si omis, un mot de passe temporaire est généré' })
+  @ApiPropertyOptional({ description: 'Si omis, le mot de passe initial est l\'adresse email' })
   @IsOptional()
   @IsString()
   @MinLength(6)

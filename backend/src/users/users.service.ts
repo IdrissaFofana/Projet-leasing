@@ -123,7 +123,7 @@ export class UsersService {
     if (exists) throw new ConflictException('Email deja utilise');
 
     const generated = !dto.password;
-    const plain = dto.password ?? generateTempPassword(10);
+    const plain = dto.password ?? email;
     const motDePasseHash = await bcrypt.hash(plain, 10);
 
     let role = dto.role ?? ('TECHNICIEN' as const);
@@ -162,7 +162,7 @@ export class UsersService {
         action: 'USER_CREATE',
         entite: 'utilisateur',
         entiteId: user.id,
-        details: `Création compte ${user.email} · rôle ${user.roleMetier?.libelle ?? user.role} · MDP temporaire généré · changement obligatoire`,
+        details: `Création compte ${user.email} · rôle ${user.roleMetier?.libelle ?? user.role} · MDP initial = email · changement obligatoire`,
         resultat: 'SUCCESS',
       })
       .catch(() => undefined);
