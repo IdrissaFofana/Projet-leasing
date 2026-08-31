@@ -28,6 +28,8 @@ import type {
   ReadingsMatrix,
   Releve,
   AssistanceQuota,
+  BackupListResponse,
+  BackupRecord,
   RoleMetier,
   StatutImprimante,
   StockMouvementsResponse,
@@ -637,5 +639,30 @@ export const api = {
         })}`,
       );
     },
+  },
+
+  backups: {
+    list: (params?: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      type?: string;
+      from?: string;
+      to?: string;
+    }) =>
+      request<BackupListResponse>(
+        `/backups${qs({
+          page: params?.page != null ? String(params.page) : undefined,
+          limit: params?.limit != null ? String(params.limit) : undefined,
+          status: params?.status,
+          type: params?.type,
+          from: params?.from,
+          to: params?.to,
+        })}`,
+      ),
+    latest: () => request<BackupRecord | null>('/backups/latest'),
+    get: (id: string) => request<BackupRecord>(`/backups/${id}`),
+    run: () =>
+      request<BackupRecord>('/backups/run', { method: 'POST' }),
   },
 };

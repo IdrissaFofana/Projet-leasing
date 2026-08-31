@@ -244,8 +244,46 @@ model Utilisateur {
   messagesEnvoyes       MessageInterne[] @relation("MessagesEnvoyes")
   messagesRecus         MessageInterne[] @relation("MessagesRecus")
   assistancesAssignees  Maintenance[]    @relation("AssistanceAssignee")
+  backupsRequested      Backup[]         @relation("BackupRequestedBy")
 
   @@index([roleMetierId])
+}
+
+enum BackupStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+}
+
+enum BackupType {
+  DAILY
+  WEEKLY
+  MONTHLY
+  MANUAL
+}
+
+/// Historique / supervision des sauvegardes PostgreSQL (systemd + rclone)
+model Backup {
+  id            String       @id @default(cuid())
+  status        BackupStatus @default(RUNNING)
+  type          BackupType
+  startedAt     DateTime
+  completedAt   DateTime?
+  filename      String?
+  size          BigInt?
+  destination   String?
+  errorMessage  String?
+  /// Identifiant unique du fichier résultat script (anti double-ingest)
+  resultKey     String?      @unique
+  requestedById String?
+  requestedBy   Utilisateur? @relation("BackupRequestedBy", fields: [requestedById], references: [id], onDelete: SetNull)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status])
+  @@index([type])
+  @@index([startedAt])
+  @@index([requestedById])
 }
 
 /// Rôles métier configurables (CRUD) avec permissions modules

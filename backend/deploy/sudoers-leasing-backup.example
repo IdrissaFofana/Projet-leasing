@@ -1,0 +1,23 @@
+# Sudoers — déploiement serveur Ubuntu UNIQUEMENT
+# Fichier cible : /etc/sudoers.d/leasing-backup
+#
+# Remplacer NODE_USER par l'utilisateur Linux qui exécute le backend NestJS
+# (ex. node, leasing, www-data — PAS root, PAS besoin d'être admin123).
+#
+# Autorise UNIQUEMENT le démarrage / inspection du service de sauvegarde.
+# Ne donne AUCUN sudo général.
+
+# Defaults
+Defaults:NODE_USER !requiretty
+
+# systemctl start (oneshot)
+NODE_USER ALL=(root) NOPASSWD: /bin/systemctl start leasing-backup.service
+
+# inspection état / résultat
+NODE_USER ALL=(root) NOPASSWD: /bin/systemctl is-active leasing-backup.service
+NODE_USER ALL=(root) NOPASSWD: /bin/systemctl show leasing-backup.service *
+
+# Vérifier :
+#   sudo -u NODE_USER sudo -n /bin/systemctl is-active leasing-backup.service
+#
+# IMPORTANT : ne pas modifier rclone.conf ni le timer systemd via ce fichier.

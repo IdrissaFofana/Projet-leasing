@@ -12,6 +12,7 @@ export const MODULES = [
   'referentiels',
   'users',
   'messages',
+  'backups',
 ] as const;
 
 export type ModulePermission = (typeof MODULES)[number];
@@ -34,6 +35,7 @@ export const MODULE_LABELS: Record<ModulePermission, string> = {
   referentiels: 'Référentiels',
   users: 'Utilisateurs',
   messages: 'Messagerie',
+  backups: 'Sauvegardes',
 };
 
 export const ACTION_LABELS: Record<CrudAction, string> = {
@@ -57,6 +59,8 @@ export const MODULE_ACTIONS: Record<ModulePermission, readonly CrudAction[]> = {
   maintenance: CRUD_ACTIONS,
   referentiels: CRUD_ACTIONS,
   users: CRUD_ACTIONS,
+  /** Lecture historique + création = déclenchement manuel */
+  backups: ['read', 'create'],
 };
 
 export function permissionKey(

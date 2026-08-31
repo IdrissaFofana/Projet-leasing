@@ -13,6 +13,7 @@ export const MODULES = [
   'referentiels',
   'users',
   'messages',
+  'backups',
 ] as const;
 
 export type ModulePermission = (typeof MODULES)[number];
@@ -35,6 +36,7 @@ export const MODULE_LABELS: Record<ModulePermission, string> = {
   referentiels: 'Référentiels',
   users: 'Gestion utilisateurs',
   messages: 'Messagerie',
+  backups: 'Sauvegardes',
 };
 
 export const ACTION_LABELS: Record<CrudAction, string> = {
@@ -57,6 +59,7 @@ export const MODULE_ACTIONS: Record<ModulePermission, readonly CrudAction[]> = {
   maintenance: CRUD_ACTIONS,
   referentiels: CRUD_ACTIONS,
   users: CRUD_ACTIONS,
+  backups: ['read', 'create'],
 };
 
 export function permissionKey(
@@ -175,6 +178,7 @@ export function allPermissionKeys(): PermissionKey[] {
 /** Mappe une route front vers le module permission requis (null = accessible si connecté). */
 export function permissionForPath(pathname: string): ModulePermission | null {
   const rules: Array<{ prefix: string; module: ModulePermission }> = [
+    { prefix: '/sauvegardes', module: 'backups' },
     { prefix: '/utilisateurs', module: 'users' },
     { prefix: '/referentiels', module: 'referentiels' },
     { prefix: '/admin', module: 'referentiels' },

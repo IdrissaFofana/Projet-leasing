@@ -77,6 +77,9 @@ export function HeaderTools() {
   const [error, setError] = useState<string | null>(null);
 
   const canMessages = hasPermission('messages');
+  const canBackups = hasPermission('backups');
+  const [backupFailed, setBackupFailed] = useState(false);
+  const [backupFailedAt, setBackupFailedAt] = useState<string | null>(null);
 
   const refreshBadges = useCallback(async () => {
     if (!user) return;
@@ -85,13 +88,23 @@ export function HeaderTools() {
       const msgP = canMessages
         ? api.messages.unreadCount()
         : Promise.resolve({ count: 0 });
-      const [n, m] = await Promise.all([notifP, msgP]);
+      const backupP = canBackups
+        ? api.backups.latest().catch(() => null)
+        : Promise.resolve(null);
+      const [n, m, latestBackup] = await Promise.all([notifP, msgP, backupP]);
       setNotifCount(n.count);
       setMsgCount(m.count);
+      if (latestBackup?.status === 'FAILED') {
+        setBackupFailed(true);
+        setBackupFailedAt(latestBackup.startedAt);
+      } else {
+        setBackupFailed(false);
+        setBackupFailedAt(null);
+      }
     } catch {
       /* ignore */
     }
-  }, [user, canMessages]);
+  }, [user, canMessages, canBackups]);
 
   useEffect(() => {
     void refreshBadges();
@@ -171,6 +184,20 @@ export function HeaderTools() {
   return (
     <div className="header-tools" ref={rootRef}>
       <PageFeedback error={error} onDismiss={() => setError(null)} />
+      {backupFailed ? (
+        <Link
+          href="/sauvegardes"
+          className="badge badge-warn"
+          title={
+            backupFailedAt
+              ? `Sauvegarde échouée — ${formatWhen(backupFailedAt, locale, t('justNow'))}`
+              : 'Sauvegarde échouée'
+          }
+          style={{ textDecoration: 'none', whiteSpace: 'nowrap' }}
+        >
+          Sauvegarde échouée
+        </Link>
+      ) : null}
       {/* Langue */}
       <div className="header-tool">
         <button

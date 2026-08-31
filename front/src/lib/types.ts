@@ -12,7 +12,8 @@ export type ModulePermission =
   | 'maintenance'
   | 'referentiels'
   | 'users'
-  | 'messages';
+  | 'messages'
+  | 'backups';
 
 export type AuthUser = {
   id: string;
@@ -688,4 +689,29 @@ export type AuditEntry = {
   resultat?: string;
   user?: { id: string; email: string; nom: string; role?: string } | null;
 };
+
+export type BackupStatus = 'RUNNING' | 'SUCCESS' | 'FAILED';
+export type BackupType = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'MANUAL';
+
+export type BackupRecord = {
+  id: string;
+  status: BackupStatus;
+  type: BackupType;
+  startedAt: string;
+  completedAt: string | null;
+  filename: string | null;
+  size: number | null;
+  destination: string | null;
+  errorMessage: string | null;
+  createdAt?: string;
+  requestedBy?: { id: string; nom: string; email: string } | null;
+};
+
+export type BackupListResponse = {
+  page: number;
+  limit: number;
+  total: number;
+  items: BackupRecord[];
+};
+
 

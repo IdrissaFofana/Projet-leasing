@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AssignmentsModule } from './assignments/assignments.module';
 import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
+import { BackupsModule } from './backups/backups.module';
 import { BillingModule } from './billing/billing.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -45,6 +46,7 @@ import { UsersModule } from './users/users.module';
     NotificationsModule,
     MessagesModule,
     RolesModule,
+    BackupsModule,
   ],
 })
 export class AppModule {}

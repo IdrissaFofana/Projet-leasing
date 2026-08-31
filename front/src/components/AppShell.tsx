@@ -84,6 +84,12 @@ const NAV: NavItem[] = [
       { href: '/utilisateurs/tracabilite', label: 'Traçabilité' },
     ],
   },
+  {
+    href: '/sauvegardes',
+    label: 'Sauvegardes',
+    icon: 'admin',
+    permission: 'backups',
+  },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
@@ -110,6 +116,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/utilisateurs/mots-de-passe': 'Réinitialisation mots de passe',
   '/utilisateurs/roles': 'Rôles & permissions',
   '/utilisateurs/tracabilite': 'Traçabilité',
+  '/sauvegardes': 'Sauvegardes',
   '/notifications': 'Notifications',
   '/profil': 'Mon profil',
   '/messagerie': 'Messagerie',
