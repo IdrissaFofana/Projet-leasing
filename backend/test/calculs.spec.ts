@@ -4,8 +4,20 @@ import {
   computeReleve,
   computeStatutStock,
   QUOTA_MENSUEL,
+  scan501Brut,
 } from '../src/common/domain/calculs';
 import { ObservationReleve } from '@prisma/client';
+
+describe('scan501Brut', () => {
+  it('calcule le delta entre deux relevés', () => {
+    expect(scan501Brut(500, 400)).toBe(100);
+  });
+
+  it('retourne 0 si valeur manquante', () => {
+    expect(scan501Brut(null, 400)).toBe(0);
+    expect(scan501Brut(500, null)).toBe(0);
+  });
+});
 
 describe('applyQuota', () => {
   it('consomme le quota puis facture le surplus', () => {
@@ -31,7 +43,7 @@ describe('computeReleve', () => {
     c113: 500,
     c122: 200,
     c123: 100,
-    c301: 1500,
+    c501: 800,
     scanNoir: 10,
     scanCouleur: 5,
     envoi: 1,
@@ -56,16 +68,16 @@ describe('computeReleve', () => {
       c113: 500,
       c122: 200,
       c123: 100,
+      c501: 700,
       scanNoir: 10,
       scanCouleur: 5,
       envoi: 1,
       quotaNoirReport: 1000,
       quotaCouleurReport: 2000,
     };
-    // Δ N = 3500, dispo = 1000+1000 = 2000 → facturer 1500, report 0
-    // Δ C = 600, dispo = 2000+2000 = 4000 → facturer 0, report 3400
+    // Δ papier C = 100, Δ 501 = 100 → brut couleur = 200
     const r = computeReleve(
-      { ...base, c112: 1200, c113: 600, c122: 250, c123: 150, c301: 1800, scanNoir: 20 },
+      { ...base, c112: 1200, c113: 600, c122: 250, c123: 150, c501: 800, scanNoir: 20 },
       prev,
     );
     expect(r.statut).toBe('OK');
@@ -73,7 +85,7 @@ describe('computeReleve', () => {
     expect(r.copiesNoirIncluses).toBe(300);
     expect(r.copiesNoirFacturer).toBe(0);
     expect(r.quotaNoirReport).toBe(1700);
-    expect(r.copiesCouleurDelta).toBe(100);
+    expect(r.copiesCouleurDelta).toBe(200);
     expect(r.copiesCouleurFacturer).toBe(0);
   });
 
@@ -85,13 +97,13 @@ describe('computeReleve', () => {
       c113: 500,
       c122: 200,
       c123: 100,
+      c501: 700,
       scanNoir: 10,
       scanCouleur: 5,
       envoi: 1,
       quotaNoirReport: 0,
       quotaCouleurReport: 0,
     };
-    // Δ N = 3500, dispo = 1000 → inclus 1000, facturer 2500
     const r = computeReleve(
       {
         ...base,
@@ -99,7 +111,7 @@ describe('computeReleve', () => {
         c113: 2000,
         c122: 200,
         c123: 100,
-        c301: 5000,
+        c501: 700,
         scanNoir: 10,
       },
       prev,
@@ -110,6 +122,27 @@ describe('computeReleve', () => {
     expect(r.quotaNoirReport).toBe(0);
   });
 
+  it('ajoute le delta 501 aux feuilles couleur', () => {
+    const prev = {
+      totalNoir: 1500,
+      totalCouleur: 300,
+      c112: 1000,
+      c113: 500,
+      c122: 200,
+      c123: 100,
+      c501: 500,
+      scanNoir: 10,
+      scanCouleur: 5,
+      envoi: 1,
+      quotaNoirReport: 0,
+      quotaCouleurReport: 0,
+    };
+    // papier couleur stable, scan +150
+    const r = computeReleve({ ...base, c501: 650 }, prev);
+    expect(r.copiesCouleurBrutes).toBe(150);
+    expect(r.copiesCouleurDelta).toBe(150);
+  });
+
   it('détecte anomalie si compteur baisse', () => {
     const prev = {
       totalNoir: 1800,
@@ -118,6 +151,7 @@ describe('computeReleve', () => {
       c113: 600,
       c122: 250,
       c123: 150,
+      c501: 600,
       scanNoir: 20,
       scanCouleur: 5,
       envoi: 1,
@@ -130,6 +164,25 @@ describe('computeReleve', () => {
     expect(r.copiesNoirFacturer).toBe(0);
   });
 
+  it('détecte anomalie si 501 baisse', () => {
+    const prev = {
+      totalNoir: 1500,
+      totalCouleur: 300,
+      c112: 1000,
+      c113: 500,
+      c122: 200,
+      c123: 100,
+      c501: 800,
+      scanNoir: 10,
+      scanCouleur: 5,
+      envoi: 1,
+      quotaNoirReport: 0,
+      quotaCouleurReport: 0,
+    };
+    const r = computeReleve({ ...base, c501: 750 }, prev);
+    expect(r.statut).toBe('ANOMALIE_COMPTEUR');
+  });
+
   it('reset compteur : delta = totaux puis quota', () => {
     const prev = {
       totalNoir: 1800,
@@ -138,6 +191,7 @@ describe('computeReleve', () => {
       c113: 600,
       c122: 250,
       c123: 150,
+      c501: 900,
       scanNoir: 20,
       scanCouleur: 5,
       envoi: 1,
@@ -145,15 +199,15 @@ describe('computeReleve', () => {
       quotaCouleurReport: 0,
     };
     const r = computeReleve(
-      { ...base, c112: 100, c113: 50, c122: 20, c123: 10, c301: 150 },
+      { ...base, c112: 100, c113: 50, c122: 20, c123: 10, c501: 120 },
       prev,
       { motif: ObservationReleve.RESET_COMPTEUR },
     );
     expect(r.anomaly).toBe(false);
     expect(r.copiesNoirDelta).toBe(150);
-    // dispo = 1000+500 = 1500 → tout inclus
     expect(r.copiesNoirFacturer).toBe(0);
-    expect(r.copiesCouleurDelta).toBe(30);
+    // couleur = 30 papier + 120 scan
+    expect(r.copiesCouleurDelta).toBe(150);
   });
 });
 

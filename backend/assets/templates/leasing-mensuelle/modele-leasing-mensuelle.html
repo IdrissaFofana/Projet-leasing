@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Modèle — Rapport Leasing Mensuel · Ivoprest · Septembre 2026</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="preview-bar">
+      <div>
+        <strong>Maquette HTML · Ivoprest</strong>
+        <span> — Rapport Leasing Mensuel (données fictives)</span>
+        <span class="preview-bar__hint">· Impression A4 portrait, marges aucune</span>
+      </div>
+      <button type="button" onclick="window.print()">Imprimer / Exporter PDF</button>
+    </div>
+
+    <main class="document">
+
+      <!-- ═══════════════ PAGE 1 — GARDE ═══════════════ -->
+      <section class="sheet cover" aria-label="Page de garde">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+
+        <div class="cover__body">
+          <h1 class="cover__title">Rapport Leasing Mensuel</h1>
+          <p class="cover__month">Septembre 2026</p>
+
+          <article class="cover__card">
+            <header class="cover__card-head">
+              <div class="cover__card-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="8" y1="13" x2="16" y2="13"/>
+                  <line x1="8" y1="17" x2="13" y2="17"/>
+                </svg>
+              </div>
+              <div class="cover__card-head-text">
+                <span class="cover__card-label">Document client</span>
+                <span class="cover__card-sub">Informations de synthèse du rapport</span>
+              </div>
+            </header>
+
+            <div class="cover__card-body">
+              <div class="cover__field cover__field--highlight">
+                <span class="cover__field-label">Client</span>
+                <span class="cover__field-value">Direction des Systèmes d'Information</span>
+              </div>
+
+              <div class="cover__field">
+                <span class="cover__field-label">Période couverte</span>
+                <span class="cover__field-value cover__field-value--period">
+                  <time datetime="2026-09-01">01/09/2026</time>
+                  <span class="cover__period-arrow" aria-hidden="true">→</span>
+                  <time datetime="2026-09-30">30/09/2026</time>
+                </span>
+              </div>
+
+              <div class="cover__field-row">
+                <div class="cover__field">
+                  <span class="cover__field-label">Référence</span>
+                  <span class="cover__field-value cover__field-value--code">RPT-2026-09-MODELE</span>
+                </div>
+                <div class="cover__field">
+                  <span class="cover__field-label">Édition</span>
+                  <span class="cover__field-value">1<sup>er</sup> septembre 2026</span>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <p class="cover__note">
+          Modèle de document — structure de référence pour les rapports mensuels de leasing.
+        </p>
+
+        <footer class="sheet__footer">
+          <span>RPT-2026-09-MODELE · Ivoprest</span>
+          <span class="page-num">1</span>
+        </footer>
+      </section>
+
+      <!-- ═══════════════ PAGE 2 — SOMMAIRE ═══════════════ -->
+      <section class="sheet" aria-label="Sommaire">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <h2 class="toc__title">Sommaire</h2>
+          <p class="toc__intro">
+            Ce rapport mensuel regroupe les relevés compteurs, l'analyse des marges incluses,
+            le calendrier des assistances et les pièces jointes photographiques.
+          </p>
+
+          <ol class="toc__list">
+            <li class="toc__item">
+              <span class="toc__label">Page de garde</span>
+              <span class="toc__page">1</span>
+            </li>
+            <li class="toc__item">
+              <span class="toc__label">1. Relevés compteurs par imprimante</span>
+              <span class="toc__page">3</span>
+            </li>
+            <li class="toc__item">
+              <span class="toc__label">2. Copieurs ayant dépassé la marge incluse</span>
+              <span class="toc__page">4</span>
+            </li>
+            <li class="toc__item">
+              <span class="toc__label">3. Copieurs n'ayant pas dépassé la marge incluse</span>
+              <span class="toc__page">5</span>
+            </li>
+            <li class="toc__item">
+              <span class="toc__label">4. Calendrier des assistances du mois</span>
+              <span class="toc__page">6</span>
+            </li>
+            <li class="toc__item toc__item--sub">
+              <span class="toc__label">Annexe 1 — Photos des compteurs</span>
+              <span class="toc__page">7</span>
+            </li>
+            <li class="toc__item toc__item--sub">
+              <span class="toc__label">Annexe 2 — Photos des interventions</span>
+              <span class="toc__page">10</span>
+            </li>
+          </ol>
+        </div>
+
+        <footer class="sheet__footer">
+          <span>Sommaire · Ivoprest</span>
+          <span class="page-num">2</span>
+        </footer>
+      </section>
+
+      <!-- ═══════════════ PAGE 3 — RELEVÉS ═══════════════ -->
+      <section class="sheet sheet--landscape" aria-label="Relevés compteurs">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="content-block">
+            <div class="section-tag">Section 1</div>
+            <h2 class="section-title">Relevés compteurs par imprimante</h2>
+            <p class="section-desc">
+              Index début / fin de période et différences consommées (Noir &amp; Couleur).
+            </p>
+
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Imprimante</th>
+                  <th>Localisation</th>
+                  <th>Relevé</th>
+                  <th class="num">Début N</th>
+                  <th class="num">Début C</th>
+                  <th class="num">Fin N</th>
+                  <th class="num">Fin C</th>
+                  <th class="num">Δ N</th>
+                  <th class="num">Δ C</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="code">IMP-0001</td>
+                  <td>Bâtiment A — Étage 3</td>
+                  <td>REL-0012</td>
+                  <td class="num">10 028</td>
+                  <td class="num">6</td>
+                  <td class="num">11 011</td>
+                  <td class="num">9</td>
+                  <td class="num">983</td>
+                  <td class="num">3</td>
+                </tr>
+                <tr>
+                  <td class="code">IMP-0002</td>
+                  <td>Bâtiment B — Accueil</td>
+                  <td>REL-0013</td>
+                  <td class="num">20 019</td>
+                  <td class="num">12</td>
+                  <td class="num">21 015</td>
+                  <td class="num">18</td>
+                  <td class="num">996</td>
+                  <td class="num">6</td>
+                </tr>
+                <tr>
+                  <td class="code">IMP-0003</td>
+                  <td>Bâtiment Équateur — Étage 10</td>
+                  <td>REL-0014</td>
+                  <td class="num">3</td>
+                  <td class="num">6</td>
+                  <td class="num">1 350</td>
+                  <td class="num">2 023</td>
+                  <td class="num">1 347</td>
+                  <td class="num">2 017</td>
+                </tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="sheet__footer">
+          <span>RPT-2026-09-MODELE · Ivoprest</span>
+          <span class="page-num">3</span>
+        </footer>
+      </section>
+
+      <!-- ═══════════════ PAGE 4 — DÉPASSEMENT MARGE ═══════════════ -->
+      <section class="sheet sheet--landscape" aria-label="Dépassement marge">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="content-block">
+            <div class="section-tag">Section 2</div>
+            <h2 class="section-title">Copieurs ayant dépassé la marge incluse</h2>
+            <p class="section-desc">
+              Quota mensuel dépassé — marge restante négative (copies à facturer).
+            </p>
+
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Imprimante</th>
+                  <th>Localisation</th>
+                  <th class="num">Quota N</th>
+                  <th class="num">Quota C</th>
+                  <th class="num">Conso N</th>
+                  <th class="num">Conso C</th>
+                  <th class="num">Marge rest. N</th>
+                  <th class="num">Marge rest. C</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="code">IMP-0003</td>
+                  <td>Bâtiment Équateur — Étage 10</td>
+                  <td class="num">1 000</td>
+                  <td class="num">2 000</td>
+                  <td class="num">1 347</td>
+                  <td class="num">2 017</td>
+                  <td class="num val-negative">−347</td>
+                  <td class="num val-negative">−17</td>
+                  <td><span class="badge badge--danger">Dépassement</span></td>
+                </tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="sheet__footer">
+          <span>RPT-2026-09-MODELE · Ivoprest</span>
+          <span class="page-num">4</span>
+        </footer>
+      </section>
+
+      <!-- ═══════════════ PAGE 5 — SOUS MARGE ═══════════════ -->
+      <section class="sheet sheet--landscape" aria-label="Sous marge">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="content-block">
+            <div class="section-tag">Section 3</div>
+            <h2 class="section-title">Copieurs n'ayant pas dépassé la marge incluse</h2>
+            <p class="section-desc">
+              Marge restante par copieur et cumul du parc sous quota.
+            </p>
+
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Imprimante</th>
+                  <th>Localisation</th>
+                  <th class="num">Quota N</th>
+                  <th class="num">Quota C</th>
+                  <th class="num">Conso N</th>
+                  <th class="num">Conso C</th>
+                  <th class="num">Marge rest. N</th>
+                  <th class="num">Marge rest. C</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="code">IMP-0001</td>
+                  <td>Bâtiment A — Étage 3</td>
+                  <td class="num">1 000</td>
+                  <td class="num">2 000</td>
+                  <td class="num">983</td>
+                  <td class="num">3</td>
+                  <td class="num val-positive">17</td>
+                  <td class="num val-positive">1 997</td>
+                  <td><span class="badge badge--ok">Sous quota</span></td>
+                </tr>
+                <tr>
+                  <td class="code">IMP-0002</td>
+                  <td>Bâtiment B — Accueil</td>
+                  <td class="num">1 000</td>
+                  <td class="num">2 000</td>
+                  <td class="num">996</td>
+                  <td class="num">6</td>
+                  <td class="num val-positive">4</td>
+                  <td class="num val-positive">1 994</td>
+                  <td><span class="badge badge--ok">Sous quota</span></td>
+                </tr>
+              </tbody>
+            </table>
+            </div>
+
+            <div class="summary-box">
+              Cumul marge restante (parc sous quota) :
+              <span>N 21</span> · <span>Couleur 3 991</span>
+            </div>
+          </div>
+        </div>
+
+        <footer class="sheet__footer">
+          <span>RPT-2026-09-MODELE · Ivoprest</span>
+          <span class="page-num">5</span>
+        </footer>
+      </section>
+
+      <!-- ═══════════════ PAGE 6 — ASSISTANCES ═══════════════ -->
+      <section class="sheet sheet--landscape" aria-label="Assistances">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="content-block">
+            <div class="section-tag">Section 4</div>
+            <h2 class="section-title">Calendrier des assistances du mois</h2>
+            <p class="section-desc">
+              Dates d'intervention par imprimante (1 assistance incluse / copieur / mois ; prélèvements et pannes hors quota).
+            </p>
+
+            <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Imprimante</th>
+                  <th>Localisation</th>
+                  <th>Dates des assistances</th>
+                  <th class="center">Nb</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="code">IMP-0001</td>
+                  <td>Bâtiment A — Étage 3</td>
+                  <td>
+                    <div class="dates-list">
+                      <span class="date-chip">05/09/2026</span>
+                      <span class="date-chip">12/09/2026</span>
+                      <span class="date-chip">26/09/2026</span>
+                    </div>
+                  </td>
+                  <td class="center">3</td>
+                </tr>
+                <tr>
+                  <td class="code">IMP-0002</td>
+                  <td>Bâtiment B — Accueil</td>
+                  <td>
+                    <div class="dates-list">
+                      <span class="date-chip">08/09/2026</span>
+                      <span class="date-chip">22/09/2026</span>
+                    </div>
+                  </td>
+                  <td class="center">2</td>
+                </tr>
+                <tr>
+                  <td class="code">IMP-0003</td>
+                  <td>Bâtiment Équateur — Étage 10</td>
+                  <td>
+                    <div class="dates-list">
+                      <span class="date-chip">01/09/2026</span>
+                      <span class="date-chip">15/09/2026</span>
+                      <span class="date-chip">29/09/2026</span>
+                    </div>
+                  </td>
+                  <td class="center">3</td>
+                </tr>
+              </tbody>
+            </table>
+            </div>
+          </div>
+        </div>
+
+        <footer class="sheet__footer">
+          <span>RPT-2026-09-MODELE · Ivoprest</span>
+          <span class="page-num">6</span>
+        </footer>
+      </section>
+
+      <!-- ═══════════════ ANNEXE 1 — COMPTEURS ═══════════════ -->
+      <section class="sheet" aria-label="Annexe 1 — IMP-0001">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="annexe-tag">Annexe 1</div>
+          <h2 class="annexe-title">IMP-0001 — REL-0012</h2>
+          <p class="annexe-sub">Relevé compteur · Prélèvement 05/09/2026</p>
+          <div class="photo-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            Emplacement photo / scan du compteur
+          </div>
+        </div>
+        <footer class="sheet__footer">
+          <span>Annexe 1 · Ivoprest</span>
+          <span class="page-num">7</span>
+        </footer>
+      </section>
+
+      <section class="sheet" aria-label="Annexe 1 — IMP-0002">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="annexe-tag">Annexe 1</div>
+          <h2 class="annexe-title">IMP-0002 — REL-0013</h2>
+          <p class="annexe-sub">Relevé compteur · Prélèvement 08/09/2026</p>
+          <div class="photo-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            Emplacement photo / scan du compteur
+          </div>
+        </div>
+        <footer class="sheet__footer">
+          <span>Annexe 1 · Ivoprest</span>
+          <span class="page-num">8</span>
+        </footer>
+      </section>
+
+      <section class="sheet" aria-label="Annexe 1 — IMP-0003">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="annexe-tag">Annexe 1</div>
+          <h2 class="annexe-title">IMP-0003 — REL-0014</h2>
+          <p class="annexe-sub">Relevé compteur · Prélèvement 01/09/2026</p>
+          <div class="photo-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            Emplacement photo / scan du compteur
+          </div>
+        </div>
+        <footer class="sheet__footer">
+          <span>Annexe 1 · Ivoprest</span>
+          <span class="page-num">9</span>
+        </footer>
+      </section>
+
+      <!-- ═══════════════ ANNEXE 2 — INTERVENTIONS ═══════════════ -->
+      <section class="sheet" aria-label="Annexe 2 — MNT-0045">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="annexe-tag">Annexe 2</div>
+          <h2 class="annexe-title">MNT-0045 — IMP-0001</h2>
+          <p class="annexe-sub">Assistance · Changement toner N</p>
+          <div class="photo-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            Emplacement photo preuve d'intervention
+          </div>
+        </div>
+        <footer class="sheet__footer">
+          <span>Annexe 2 · Ivoprest</span>
+          <span class="page-num">10</span>
+        </footer>
+      </section>
+
+      <section class="sheet" aria-label="Annexe 2 — MNT-0046">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="annexe-tag">Annexe 2</div>
+          <h2 class="annexe-title">MNT-0046 — IMP-0002</h2>
+          <p class="annexe-sub">Assistance · Nettoyage bac récupération</p>
+          <div class="photo-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            Emplacement photo preuve d'intervention
+          </div>
+        </div>
+        <footer class="sheet__footer">
+          <span>Annexe 2 · Ivoprest</span>
+          <span class="page-num">11</span>
+        </footer>
+      </section>
+
+      <section class="sheet" aria-label="Annexe 2 — MNT-0047">
+        <header class="sheet__header">
+          <img src="logo-ivoprest.jpg" alt="Ivoprest" class="sheet__logo" />
+        </header>
+        <div class="sheet__inner">
+          <div class="annexe-tag">Annexe 2</div>
+          <h2 class="annexe-title">MNT-0047 — IMP-0003</h2>
+          <p class="annexe-sub">Assistance · Prélèvement mensuel</p>
+          <div class="photo-placeholder">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <path d="M21 15l-5-5L5 21"/>
+            </svg>
+            Emplacement photo preuve d'intervention
+          </div>
+        </div>
+        <footer class="sheet__footer">
+          <span>Annexe 2 · Ivoprest</span>
+          <span class="page-num">12</span>
+        </footer>
+      </section>
+
+    </main>
+  </body>
+</html>

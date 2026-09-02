@@ -68,7 +68,7 @@ export class ReadingsExportService {
         factC: r.copiesCouleurFacturer,
         reportN: r.quotaNoirReport,
         reportC: r.quotaCouleurReport,
-        ecart301: r.ecartControle,
+        c501: r.c501,
         statut: r.statut,
       }));
       const columns = [
@@ -86,7 +86,7 @@ export class ReadingsExportService {
         { key: 'factC', header: 'Fact. C', width: 10, align: 'right' as const },
         { key: 'reportN', header: 'Report N', width: 10, align: 'right' as const },
         { key: 'reportC', header: 'Report C', width: 10, align: 'right' as const },
-        { key: 'ecart301', header: 'Écart 301', width: 10, align: 'right' as const },
+        { key: 'c501', header: '501 (scan)', width: 10, align: 'right' as const },
         { key: 'statut', header: 'Statut', width: 14 },
       ];
       return {
@@ -180,8 +180,7 @@ export class ReadingsExportService {
         imprimante: l.imprimante.code,
         localisation: l.imprimante.localisation ?? '',
         totalN: l.totalNoir,
-        c301: l.c301,
-        ecart: l.ecartControle,
+        c501: l.c501,
         deltaN: l.copiesNoirBrutes,
         factN: l.copiesNoirFacturer,
         factC: l.copiesCouleurFacturer,
@@ -194,8 +193,7 @@ export class ReadingsExportService {
         { key: 'imprimante', header: 'Imprimante', width: 12 },
         { key: 'localisation', header: 'Localisation', width: 20 },
         { key: 'totalN', header: 'Total N', width: 10, align: 'right' as const },
-        { key: 'c301', header: '301', width: 9, align: 'right' as const },
-        { key: 'ecart', header: 'Écart', width: 9, align: 'right' as const },
+        { key: 'c501', header: '501', width: 9, align: 'right' as const },
         { key: 'deltaN', header: 'Δ N brut', width: 10, align: 'right' as const },
         { key: 'factN', header: 'Fact. N', width: 10, align: 'right' as const },
         { key: 'factC', header: 'Fact. C', width: 10, align: 'right' as const },

@@ -1,7 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ObservationReleve } from '@prisma/client';
+import { ObservationReleve, PorteeCampagne } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
+  IsArray,
   IsDateString,
   IsEnum,
   IsIn,
@@ -10,6 +12,7 @@ import {
   IsString,
   Matches,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateCampaignDto {
@@ -25,6 +28,36 @@ export class CreateCampaignDto {
   @IsOptional()
   @IsString()
   heureReleve?: string;
+
+  @ApiPropertyOptional({
+    enum: PorteeCampagne,
+    default: PorteeCampagne.ALL,
+    description: 'ALL = tous les copieurs actifs ; SELECTION = liste imprimanteIds',
+  })
+  @IsOptional()
+  @IsEnum(PorteeCampagne)
+  portee?: PorteeCampagne;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Obligatoire si portee = SELECTION (au moins 1 copieur)',
+  })
+  @ValidateIf((o: CreateCampaignDto) => o.portee === PorteeCampagne.SELECTION)
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Sélectionnez au moins un copieur' })
+  @IsString({ each: true })
+  imprimanteIds?: string[];
+}
+
+export class AddCampaignLignesDto {
+  @ApiProperty({
+    type: [String],
+    description: 'Copieurs à ajouter à la campagne (non déjà présents)',
+  })
+  @IsArray()
+  @ArrayMinSize(1, { message: 'Sélectionnez au moins un copieur' })
+  @IsString({ each: true })
+  imprimanteIds!: string[];
 }
 
 export class CampaignExportQueryDto {
@@ -68,13 +101,6 @@ export class UpdateCampaignLigneDto {
   @IsInt()
   @Min(0)
   c501?: number | null;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  c301?: number | null;
 
   @ApiPropertyOptional()
   @IsOptional()

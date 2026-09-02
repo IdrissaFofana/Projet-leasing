@@ -5,7 +5,7 @@ export type CounterInput = {
   c113: number;
   c122: number;
   c123: number;
-  c301?: number | null;
+  c501?: number | null;
   scanNoir: number;
   scanCouleur: number;
   envoi: number;
@@ -18,6 +18,7 @@ export type PreviousSnapshot = {
   c113: number;
   c122: number;
   c123: number;
+  c501?: number | null;
   scanNoir: number;
   scanCouleur: number;
   envoi: number;
@@ -25,9 +26,8 @@ export type PreviousSnapshot = {
   quotaCouleurReport?: number | null;
 };
 
-/** Seuils métier pour alertes (Δ haut / écart 301). */
+/** Seuils métier pour alertes (Δ haut). */
 export const RELEVE_THRESHOLDS = {
-  ecart301AbsMax: 10,
   deltaNoirAbsWarn: 100_000,
   deltaCouleurAbsWarn: 50_000,
   deltaVsAvgMultiplier: 3,
@@ -48,8 +48,22 @@ export function isResetMotif(motif?: ObservationReleve | null) {
   return !!motif && RESET_MOTIFS.includes(motif);
 }
 
+const NEUTRAL_MOTIFS = new Set<string>([
+  ObservationReleve.RAS,
+  'PRELEVEMENT_MENSUEL',
+]);
+
 export function isJustifiedMotif(motif?: ObservationReleve | null) {
-  return !!motif && motif !== ObservationReleve.RAS;
+  return !!motif && !NEUTRAL_MOTIFS.has(motif);
+}
+
+/** Delta du compteur 501 (total scan) entre deux relevés. */
+export function scan501Brut(
+  c501: number | null | undefined,
+  prev501: number | null | undefined,
+): number {
+  if (c501 == null || prev501 == null) return 0;
+  return c501 - prev501;
 }
 
 /** Applique le quota inclus : reste reporté au mois suivant. */
@@ -95,7 +109,7 @@ function buildQuotaFields(
   };
 }
 
-/** Totaux, Δ, quotas, Δ facturables après quota, écart 301, alertes, statut. */
+/** Totaux, Δ, quotas, Δ facturables après quota, alertes, statut. */
 export function computeReleve(
   counters: CounterInput,
   previous: PreviousSnapshot | null,
@@ -103,10 +117,6 @@ export function computeReleve(
 ) {
   const totalNoir = counters.c112 + counters.c113;
   const totalCouleur = counters.c122 + counters.c123;
-  const ecartControle =
-    counters.c301 === null || counters.c301 === undefined
-      ? null
-      : counters.c301 - totalNoir;
 
   const reportInN = previous?.quotaNoirReport ?? 0;
   const reportInC = previous?.quotaCouleurReport ?? 0;
@@ -125,11 +135,7 @@ export function computeReleve(
       scansNoirFacturer: 0,
       scansCouleurFacturer: 0,
       envoisFacturer: 0,
-      ecartControle,
       alerteDeltaHaut: false,
-      alerteEcart301:
-        ecartControle !== null &&
-        Math.abs(ecartControle) > RELEVE_THRESHOLDS.ecart301AbsMax,
       statut: StatutReleve.BASE_INITIALE,
       anomaly: false,
     };
@@ -138,8 +144,9 @@ export function computeReleve(
   const reset = isResetMotif(options.motif);
   const justified = isJustifiedMotif(options.motif);
 
+  const delta501 = scan501Brut(counters.c501, previous.c501);
   const copiesNoirBrutes = totalNoir - previous.totalNoir;
-  const copiesCouleurBrutes = totalCouleur - previous.totalCouleur;
+  const copiesCouleurBrutes = totalCouleur - previous.totalCouleur + delta501;
   const scansNoirBruts = counters.scanNoir - previous.scanNoir;
   const scansCouleurBruts = counters.scanCouleur - previous.scanCouleur;
   const envoisBruts = counters.envoi - previous.envoi;
@@ -154,11 +161,16 @@ export function computeReleve(
       counters.c112 < previous.c112 ||
       counters.c113 < previous.c113 ||
       counters.c122 < previous.c122 ||
-      counters.c123 < previous.c123);
+      counters.c123 < previous.c123 ||
+      (counters.c501 != null &&
+        previous.c501 != null &&
+        counters.c501 < previous.c501));
 
-  // Consommation du mois (avant quota)
+  // Consommation du mois (avant quota) — 501 (scan) compte dans le couleur
   const deltaNoir = reset ? totalNoir : Math.max(0, copiesNoirBrutes);
-  const deltaCouleur = reset ? totalCouleur : Math.max(0, copiesCouleurBrutes);
+  const deltaCouleur = reset
+    ? totalCouleur + (counters.c501 ?? 0)
+    : Math.max(0, copiesCouleurBrutes);
   const scansNoirFacturer = reset ? counters.scanNoir : Math.max(0, scansNoirBruts);
   const scansCouleurFacturer = reset
     ? counters.scanCouleur
@@ -166,10 +178,6 @@ export function computeReleve(
   const envoisFacturer = reset ? counters.envoi : Math.max(0, envoisBruts);
 
   const quota = buildQuotaFields(deltaNoir, deltaCouleur, reportInN, reportInC);
-
-  const alerteEcart301 =
-    ecartControle !== null &&
-    Math.abs(ecartControle) > RELEVE_THRESHOLDS.ecart301AbsMax;
 
   const vsAvgNoir =
     options.avgDeltaNoir != null &&
@@ -189,7 +197,7 @@ export function computeReleve(
 
   let statut: StatutReleve;
   if (anomalyRaw) statut = StatutReleve.ANOMALIE_COMPTEUR;
-  else if (alerteDeltaHaut || alerteEcart301) statut = StatutReleve.A_CONTROLER;
+  else if (alerteDeltaHaut) statut = StatutReleve.A_CONTROLER;
   else statut = StatutReleve.OK;
 
   return {
@@ -204,9 +212,7 @@ export function computeReleve(
     scansNoirFacturer,
     scansCouleurFacturer,
     envoisFacturer,
-    ecartControle,
     alerteDeltaHaut,
-    alerteEcart301,
     statut,
     anomaly: anomalyRaw,
   };

@@ -7,7 +7,7 @@ import { DataTableShell } from '@/components/DataTable';
 import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { api, ApiError } from '@/lib/api';
 import { currentMois, formatDate } from '@/lib/format';
-import type { Imprimante, Maintenance } from '@/lib/types';
+import type { AssistanceQuota, Imprimante, Maintenance } from '@/lib/types';
 
 export default function QuotaPrinterDetailInner() {
   const params = useParams<{ imprimanteId: string }>();
@@ -15,21 +15,24 @@ export default function QuotaPrinterDetailInner() {
   const mois = search.get('mois') || currentMois();
   const [printer, setPrinter] = useState<Imprimante | null>(null);
   const [rows, setRows] = useState<Maintenance[]>([]);
+  const [quotaLine, setQuotaLine] = useState<AssistanceQuota['lignes'][number] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
       try {
-        const [p, list] = await Promise.all([
+        const [p, list, quota] = await Promise.all([
           api.printers.get(params.imprimanteId),
           api.maintenance.list({
             imprimanteId: params.imprimanteId,
             type: 'ASSISTANCE',
             moisAssistance: mois,
           }),
+          api.maintenance.assistanceQuota(mois),
         ]);
         setPrinter(p);
         setRows(list);
+        setQuotaLine(quota.lignes.find((l) => l.imprimanteId === params.imprimanteId) ?? null);
       } catch (e) {
         setError(e instanceof ApiError ? e.message : 'Chargement impossible');
       }
@@ -37,9 +40,29 @@ export default function QuotaPrinterDetailInner() {
   }, [params.imprimanteId, mois]);
 
   const resume = useMemo(() => {
-    const faites = rows.length;
-    return { faites, restantes: Math.max(0, 3 - faites), complet: faites >= 3 };
-  }, [rows]);
+    if (quotaLine) {
+      return {
+        faites: quotaLine.faites,
+        panne: quotaLine.panne ?? 0,
+        prelevements: quotaLine.prelevements ?? 0,
+        prevues: quotaLine.prevues,
+        restantes: quotaLine.restantes,
+        complet: quotaLine.complet,
+      };
+    }
+    const faites = rows.filter((r) => !r.horsQuota && !r.releveId).length;
+    const panne = rows.filter((r) => r.horsQuota).length;
+    const prelevements = rows.filter((r) => r.releveId).length;
+    const prevues = 1;
+    return {
+      faites,
+      panne,
+      prelevements,
+      prevues,
+      restantes: Math.max(0, prevues - faites),
+      complet: faites >= prevues,
+    };
+  }, [quotaLine, rows]);
 
   return (
     <>
@@ -66,19 +89,16 @@ export default function QuotaPrinterDetailInner() {
               Modèle : <strong>{printer.modele ?? '—'}</strong>
             </div>
             <div>
-              N° série : <strong>{printer.numeroSerie ?? '—'}</strong>
-            </div>
-            <div>
-              Marque : <strong>{printer.marque?.nom ?? '—'}</strong>
-            </div>
-            <div>
-              Service : <strong>{printer.service?.nom ?? '—'}</strong>
-            </div>
-            <div>
-              Assistances : <strong>{resume.faites}/3</strong>{' '}
+              Assistances incluses : <strong>{resume.faites}/{resume.prevues}</strong>{' '}
               <span className={resume.complet ? 'badge badge-ok' : 'badge badge-warn'}>
                 {resume.complet ? 'Complet' : `${resume.restantes} restante(s)`}
               </span>
+            </div>
+            <div>
+              Pannes (hors quota) : <strong>{resume.panne}</strong>
+            </div>
+            <div>
+              Prélèvements compteur (hors quota) : <strong>{resume.prelevements}</strong>
             </div>
           </div>
         </div>
@@ -90,6 +110,7 @@ export default function QuotaPrinterDetailInner() {
             <tr>
               <th>Code</th>
               <th>Date</th>
+              <th>Statut quota</th>
               <th>Actions</th>
               <th>Rapport</th>
               <th className="col-actions" />
@@ -100,6 +121,15 @@ export default function QuotaPrinterDetailInner() {
               <tr key={r.id}>
                 <td className="mono">{r.code}</td>
                 <td>{formatDate(r.dateMaintenance)}</td>
+                <td>
+                  {r.horsQuota ? (
+                    <span className="badge badge-warn">Panne (hors quota)</span>
+                  ) : r.releveId ? (
+                    <span className="badge badge-info">Prélèvement compteur (hors quota)</span>
+                  ) : (
+                    <span className="badge badge-ok">Incluse</span>
+                  )}
+                </td>
                 <td>{r.actionsRealisees ?? '—'}</td>
                 <td>{r.rapportNom ?? '—'}</td>
                 <td className="col-actions">

@@ -42,7 +42,7 @@ export default function MaintenanceQuotasPage() {
       <div className="page-head page-head-row">
         <div>
           <h1>Quotas assistances</h1>
-          <p>3 assistances prévues par copieur et par mois</p>
+          <p>1 assistance incluse par copieur et par mois (prélèvements compteur et pannes hors quota)</p>
         </div>
         <input className="input" type="month" value={mois} onChange={(e) => setMois(e.target.value)} />
       </div>
@@ -67,6 +67,7 @@ export default function MaintenanceQuotasPage() {
               <SortTh label="Localisation" sortKey="localisation" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Faites" sortKey="faites" activeKey={sortKey} direction={sortDir} onSort={toggle} align="right" />
               <SortTh label="Restantes" sortKey="restantes" activeKey={sortKey} direction={sortDir} onSort={toggle} align="right" />
+              <th>Panne</th>
               <th>Statut</th>
               <th className="col-actions" />
             </tr>
@@ -80,6 +81,7 @@ export default function MaintenanceQuotasPage() {
                   {l.faites}/{l.prevues}
                 </td>
                 <td data-align="right">{l.restantes}</td>
+                <td data-align="right">{l.panne ?? 0}</td>
                 <td>
                   <span className={l.complet ? 'badge badge-ok' : 'badge badge-warn'}>
                     {l.complet ? 'Complet' : 'À planifier'}

@@ -12,7 +12,7 @@ import {
   hasPermission,
   type ModulePermission,
 } from '../common/auth/permissions';
-import { ASSISTANCES_PAR_MOIS } from '../common/upload/report-files';
+import { ASSISTANCES_PAR_MOIS, countAssistancesParImprimante } from '../common/domain/assistance-quota';
 import { PrismaService } from '../prisma/prisma.service';
 
 type AlertCandidate = {
@@ -318,19 +318,16 @@ export class NotificationsService {
         where: { statut: { not: StatutImprimante.RETIREE } },
         select: { id: true, code: true },
       });
-      const counts = await this.prisma.maintenance.groupBy({
-        by: ['imprimanteId'],
-        where: { type: TypeMaintenance.ASSISTANCE, moisAssistance: mois },
-        _count: { _all: true },
+      const counts = await countAssistancesParImprimante(this.prisma, mois, {
+        horsQuota: false,
       });
-      const map = new Map(counts.map((c) => [c.imprimanteId, c._count._all]));
       const incomplete = printers.filter(
-        (p) => (map.get(p.id) ?? 0) < ASSISTANCES_PAR_MOIS,
+        (p) => (counts.get(p.id) ?? 0) < ASSISTANCES_PAR_MOIS,
       );
       if (incomplete.length > 0) {
         const samples = incomplete
           .slice(0, 5)
-          .map((p) => `${p.code} (${map.get(p.id) ?? 0}/${ASSISTANCES_PAR_MOIS})`)
+          .map((p) => `${p.code} (${counts.get(p.id) ?? 0}/${ASSISTANCES_PAR_MOIS})`)
           .join(', ');
         out.push({
           type: NotificationType.ASSISTANCE_QUOTA,
@@ -339,7 +336,7 @@ export class NotificationsService {
               ? NotificationPriority.HIGH
               : NotificationPriority.NORMAL,
           titre: `Assistances ${mois}`,
-          message: `${incomplete.length} imprimante(s) n’ont pas encore ${ASSISTANCES_PAR_MOIS} assistances ce mois. Ex. : ${samples}`,
+          message: `${incomplete.length} copieur(s) sans assistance incluse ce mois. Ex. : ${samples}. Prélèvements compteur et pannes signalées hors quota.`,
           lien: '/maintenance/quotas',
           fingerprint: `alert:ASSIST:${mois}:${incomplete.length}`,
           module: 'maintenance',

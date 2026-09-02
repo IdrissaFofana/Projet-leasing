@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -138,6 +139,14 @@ export class ReadingsController {
   @Roles(...readRoles)
   downloadRapport(@Param('id') id: string) {
     return this.readings.downloadRapport(id);
+  }
+
+  @RequirePermission('readings', 'delete')
+  @ApiTags('releves')
+  @Delete(':id')
+  @Roles(RoleUtilisateur.ADMIN)
+  remove(@Param('id') id: string) {
+    return this.readings.remove(id);
   }
 
   @RequirePermission('readings', 'create')

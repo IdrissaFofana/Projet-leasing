@@ -90,6 +90,24 @@ export default function FactureDetailPage() {
     }
   }
 
+  async function exportLeasingMensuelle() {
+    setError(null);
+    try {
+      await api.reports.leasingMensuelle(mois);
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Rapport leasing mensuel impossible');
+    }
+  }
+
+  async function exportLeasingAnnuelle() {
+    setError(null);
+    try {
+      await api.reports.leasingAnnuelle(mois.slice(0, 4));
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Rapport leasing annuel impossible');
+    }
+  }
+
   async function exportFile(format: 'xlsx' | 'pdf') {
     try {
       await api.billing.exportFile(mois, format);
@@ -153,6 +171,22 @@ export default function FactureDetailPage() {
         </button>
         <button type="button" className="btn btn-esay" disabled={!periode} onClick={() => void exportFile('pdf')}>
           Export PDF
+        </button>
+        <button
+          type="button"
+          className="btn btn-esay"
+          disabled={busy}
+          onClick={() => void exportLeasingMensuelle()}
+        >
+          Rapport Leasing mensuel
+        </button>
+        <button
+          type="button"
+          className="btn btn-soft"
+          disabled={busy}
+          onClick={() => void exportLeasingAnnuelle()}
+        >
+          Rapport Leasing annuel
         </button>
         <button
           type="button"

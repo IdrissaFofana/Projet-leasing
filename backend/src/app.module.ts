@@ -15,6 +15,7 @@ import { PrintersModule } from './printers/printers.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ReadingsModule } from './readings/readings.module';
 import { ReferentielsModule } from './referentiels/referentiels.module';
+import { ReportsModule } from './reports/reports.module';
 import { RolesModule } from './roles/roles.module';
 import { SequencesModule } from './sequences/sequences.module';
 import { StockModule } from './stock/stock.module';
@@ -40,6 +41,7 @@ import { UsersModule } from './users/users.module';
     ReadingsModule,
     CampaignsModule,
     BillingModule,
+    ReportsModule,
     MaintenanceModule,
     DashboardModule,
     AuditModule,

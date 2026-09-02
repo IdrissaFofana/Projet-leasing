@@ -2,11 +2,13 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { PageFeedback } from '@/components/feedback/PageFeedback';
+import { useFeedback } from '@/components/feedback/FeedbackProvider';
 import { FileDropzone } from '@/components/FileDropzone';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
+import { useAuth } from '@/lib/auth-context';
 import { formatDate, formatDateTime } from '@/lib/format';
 import type { ObservationReleve, Releve } from '@/lib/types';
 import { OBSERVATION_RELEVE_LABEL } from '@/lib/types';
@@ -20,6 +22,10 @@ function statutBadge(statut: string) {
 }
 
 export default function ReleveDetailPage() {
+  const { confirm } = useFeedback();
+  const router = useRouter();
+  const { hasCrudPermission } = useAuth();
+  const canDelete = hasCrudPermission('readings', 'delete');
   const params = useParams<{ id: string }>();
   const [row, setRow] = useState<Releve | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -31,7 +37,6 @@ export default function ReleveDetailPage() {
     c113: '',
     c122: '',
     c123: '',
-    c301: '',
     c501: '',
     scanNoir: '',
     scanCouleur: '',
@@ -60,7 +65,6 @@ export default function ReleveDetailPage() {
       c113: String(row.c113),
       c122: String(row.c122),
       c123: String(row.c123),
-      c301: row.c301 == null ? '' : String(row.c301),
       c501: row.c501 == null ? '' : String(row.c501),
       scanNoir: String(row.scanNoir),
       scanCouleur: String(row.scanCouleur),
@@ -83,7 +87,6 @@ export default function ReleveDetailPage() {
         c113: Number(form.c113 || 0),
         c122: Number(form.c122 || 0),
         c123: Number(form.c123 || 0),
-        c301: form.c301 === '' ? null : Number(form.c301),
         c501: form.c501 === '' ? null : Number(form.c501),
         scanNoir: Number(form.scanNoir || 0),
         scanCouleur: Number(form.scanCouleur || 0),
@@ -96,6 +99,33 @@ export default function ReleveDetailPage() {
       await load();
     } catch (err) {
       setFormError(err instanceof ApiError ? err.message : 'Mise à jour impossible');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function removeReleve() {
+    if (!row) return;
+    if (
+      !(await confirm({
+        title: 'Supprimer le relevé',
+        message: `Supprimer définitivement ${row.code} (${row.imprimante?.code} · ${row.moisFacture}) ? L’assistance liée sera conservée mais détachée. Si une facture a été calculée pour ce mois, recalculez-la ensuite.`,
+        danger: true,
+        confirmLabel: 'Supprimer',
+      }))
+    ) {
+      return;
+    }
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api.readings.delete(row.id);
+      const hints: string[] = [];
+      if (res.campagneRouverte) hints.push('campagne rouverte');
+      if (res.factureRecalculRequise) hints.push('recalcul facturation requis');
+      router.push(hints.length ? `/releves?deleted=${row.code}&hint=${hints.join(',')}` : `/releves?deleted=${row.code}`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Suppression impossible');
     } finally {
       setSaving(false);
     }
@@ -123,6 +153,7 @@ export default function ReleveDetailPage() {
 
   return (
     <>
+      <PageFeedback error={error} onDismiss={() => setError(null)} />
       <div className="page-head page-head-row">
         <div>
           <h1>{row.code}</h1>
@@ -168,6 +199,16 @@ export default function ReleveDetailPage() {
               Valider facturation
             </button>
           ) : null}
+          {canDelete && !locked ? (
+            <button
+              type="button"
+              className="btn btn-danger"
+              disabled={saving}
+              onClick={() => void removeReleve()}
+            >
+              Supprimer
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -178,8 +219,7 @@ export default function ReleveDetailPage() {
           <div>113: <strong>{row.c113}</strong></div>
           <div>122: <strong>{row.c122}</strong></div>
           <div>123: <strong>{row.c123}</strong></div>
-          <div>301: <strong>{row.c301 ?? '—'}</strong></div>
-          <div>501: <strong>{row.c501 ?? '—'}</strong></div>
+          <div>501 (scan): <strong>{row.c501 ?? '—'}</strong></div>
           <div>Scan N: <strong>{row.scanNoir}</strong></div>
           <div>Scan C: <strong>{row.scanCouleur}</strong></div>
           <div>Envoi: <strong>{row.envoi}</strong></div>
@@ -236,12 +276,9 @@ export default function ReleveDetailPage() {
           <div>Facturable C: <strong>{row.copiesCouleurFacturer}</strong></div>
           <div>Report N → mois+1: <strong>{row.quotaNoirReport ?? '—'}</strong></div>
           <div>Report C → mois+1: <strong>{row.quotaCouleurReport ?? '—'}</strong></div>
-          <div>Écart 301: <strong>{row.ecartControle ?? '—'}</strong></div>
           <div>
             Alertes:{' '}
-            {row.alerteDeltaHaut ? <span className="badge badge-warn">Δ haut</span> : null}{' '}
-            {row.alerteEcart301 ? <span className="badge badge-danger">301</span> : null}
-            {!row.alerteDeltaHaut && !row.alerteEcart301 ? '—' : null}
+            {row.alerteDeltaHaut ? <span className="badge badge-warn">Δ haut</span> : '—'}
           </div>
           <div>
             Motif:{' '}
@@ -295,7 +332,6 @@ export default function ReleveDetailPage() {
               'c113',
               'c122',
               'c123',
-              'c301',
               'c501',
               'scanNoir',
               'scanCouleur',

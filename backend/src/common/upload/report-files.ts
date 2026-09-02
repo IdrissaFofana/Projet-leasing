@@ -3,7 +3,7 @@ import * as path from 'path';
 import { BadRequestException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
-export const ASSISTANCES_PAR_MOIS = 3;
+export const ASSISTANCES_PAR_MOIS = 1;
 
 const ALLOWED_MIME = new Set([
   'application/pdf',
@@ -36,7 +36,7 @@ export function assertReportFile(file?: Express.Multer.File) {
 }
 
 export function saveReportFile(
-  kind: 'releves' | 'maintenance',
+  kind: 'releves' | 'maintenance' | 'campagnes',
   file: Express.Multer.File,
 ): { relativePath: string; originalName: string; mime: string } {
   assertReportFile(file);

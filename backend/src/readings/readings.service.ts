@@ -13,11 +13,13 @@ import {
   ReleveCompteur,
   StatutFacturePeriode,
   StatutImprimante,
+  StatutLigneSaisie,
   StatutReleve,
   TypeMaintenance,
 } from '@prisma/client';
 import * as fs from 'fs';
 import { computeReleve } from '../common/domain/calculs';
+import { syncCampagneLigneFromReleve } from '../common/domain/campaign-releve-sync';
 import {
   absoluteUploadPath,
   saveReportFile,
@@ -40,7 +42,6 @@ type CounterSnapshot = {
   c122: number;
   c123: number;
   c501: number | null;
-  c301: number | null;
   scanNoir: number;
   scanCouleur: number;
   envoi: number;
@@ -72,7 +73,6 @@ export class ReadingsService {
       where.OR = [
         { statut: StatutReleve.A_CONTROLER },
         { alerteDeltaHaut: true },
-        { alerteEcart301: true },
         { statut: StatutReleve.ANOMALIE_COMPTEUR },
       ];
     } else if (query.file === 'ok') {
@@ -126,7 +126,43 @@ export class ReadingsService {
     await this.ensurePrinter(query.imprimanteId);
     const date = query.dateReleve ?? `${query.moisFacture}-28`;
     const prev = await this.findPrevious(query.imprimanteId, query.moisFacture, date);
-    if (!prev) return null;
+    return prev ? this.formatPreviousSnapshot(prev) : null;
+  }
+
+  /** Dernier relevé officiel par copieur (batch, pour campagnes). */
+  async findPreviousBatch(
+    imprimanteIds: string[],
+    moisFacture: string,
+    dateReleve: string,
+  ) {
+    const unique = [...new Set(imprimanteIds)];
+    if (unique.length === 0) return new Map<string, ReturnType<typeof this.formatPreviousSnapshot>>();
+
+    const rows = await this.prisma.releveCompteur.findMany({
+      where: {
+        imprimanteId: { in: unique },
+        statut: { not: StatutReleve.BROUILLON },
+        OR: [
+          { moisFacture: { lt: moisFacture } },
+          {
+            moisFacture,
+            dateReleve: { lt: new Date(dateReleve) },
+          },
+        ],
+      },
+      orderBy: [{ moisFacture: 'desc' }, { dateReleve: 'desc' }, { createdAt: 'desc' }],
+    });
+
+    const map = new Map<string, ReturnType<typeof this.formatPreviousSnapshot>>();
+    for (const row of rows) {
+      if (!map.has(row.imprimanteId)) {
+        map.set(row.imprimanteId, this.formatPreviousSnapshot(row));
+      }
+    }
+    return map;
+  }
+
+  private formatPreviousSnapshot(prev: ReleveCompteur) {
     return {
       id: prev.id,
       code: prev.code,
@@ -136,7 +172,6 @@ export class ReadingsService {
       c113: prev.c113,
       c122: prev.c122,
       c123: prev.c123,
-      c301: prev.c301,
       c501: prev.c501,
       scanNoir: prev.scanNoir,
       scanCouleur: prev.scanCouleur,
@@ -206,7 +241,7 @@ export class ReadingsService {
         },
       });
 
-      // Prélèvement compteur = 1 assistance automatique du mois
+      // Prélèvement compteur : assistance auto liée au relevé (hors quota mensuel)
       const mntCode = await this.sequences.nextCode(EntiteSequence.MAINTENANCE, tx);
       await tx.maintenance.create({
         data: {
@@ -215,12 +250,19 @@ export class ReadingsService {
           heureMaintenance: this.parseHeure(dto.heureReleve),
           imprimanteId: dto.imprimanteId,
           type: TypeMaintenance.ASSISTANCE,
+          taches: [TypeMaintenance.ASSISTANCE],
           moisAssistance: dto.moisFacture,
           releveId: row.id,
+          horsQuota: false,
           actionsRealisees: `Prélèvement compteurs — relevé ${code}`,
           observations: 'Assistance générée automatiquement depuis le relevé mensuel',
+          imprimantes: {
+            create: { imprimanteId: dto.imprimanteId },
+          },
         },
       });
+
+      await syncCampagneLigneFromReleve(tx, row);
 
       return tx.releveCompteur.findUniqueOrThrow({
         where: { id: row.id },
@@ -259,6 +301,64 @@ export class ReadingsService {
     });
   }
 
+  async remove(id: string, userId?: string) {
+    const existing = await this.findOne(id);
+    this.ensureDeletable(existing);
+    await this.ensureFactureNonCloturee(existing.moisFacture);
+
+    const facture = await this.prisma.facturePeriode.findUnique({
+      where: { mois: existing.moisFacture },
+    });
+    const factureCalculee =
+      facture != null && facture.statut !== StatutFacturePeriode.CLOTUREE;
+
+    const linkedLignes = await this.prisma.ligneSaisieMensuelle.findMany({
+      where: { archiveVersReleveId: id },
+    });
+
+    if (existing.rapportPath) {
+      const abs = absoluteUploadPath(existing.rapportPath);
+      if (fs.existsSync(abs)) {
+        try {
+          fs.unlinkSync(abs);
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      if (linkedLignes.length > 0) {
+        await tx.ligneSaisieMensuelle.updateMany({
+          where: { archiveVersReleveId: id },
+          data: {
+            archiveVersReleveId: null,
+            statutLigne: StatutLigneSaisie.PRET,
+          },
+        });
+
+        const campagneIds = [...new Set(linkedLignes.map((l) => l.campagneId))];
+        for (const campagneId of campagneIds) {
+          await tx.campagneSaisie.update({
+            where: { id: campagneId },
+            data: { cloturee: false },
+          });
+        }
+      }
+
+      await tx.releveCompteur.delete({ where: { id } });
+    });
+
+    return {
+      ok: true,
+      code: existing.code,
+      moisFacture: existing.moisFacture,
+      imprimanteId: existing.imprimanteId,
+      factureRecalculRequise: factureCalculee,
+      campagneRouverte: linkedLignes.length > 0,
+    };
+  }
+
   async update(id: string, dto: UpdateReadingDto, userId?: string) {
     const existing = await this.findOne(id);
     this.ensureEditable(existing);
@@ -270,7 +370,6 @@ export class ReadingsService {
       c122: dto.c122 ?? existing.c122,
       c123: dto.c123 ?? existing.c123,
       c501: dto.c501 !== undefined ? dto.c501 : existing.c501,
-      c301: dto.c301 !== undefined ? dto.c301 : existing.c301,
       scanNoir: dto.scanNoir ?? existing.scanNoir,
       scanCouleur: dto.scanCouleur ?? existing.scanCouleur,
       envoi: dto.envoi ?? existing.envoi,
@@ -453,7 +552,6 @@ export class ReadingsService {
             c113: row.c113,
             c122: row.c122,
             c123: row.c123,
-            c301: row.c301,
             c501: row.c501,
             scanNoir: row.scanNoir,
             scanCouleur: row.scanCouleur,
@@ -512,13 +610,9 @@ export class ReadingsService {
       observationMotif: r.observationMotif,
       totalNoir: r.totalNoir,
       totalCouleur: r.totalCouleur,
-      c301: r.c301,
       c501: r.c501,
-      ecartControle: r.ecartControle,
-      ecartOk: !r.alerteEcart301 && (r.ecartControle === null || r.ecartControle === 0),
       anomaly: r.statut === StatutReleve.ANOMALIE_COMPTEUR,
       alerteDeltaHaut: r.alerteDeltaHaut,
-      alerteEcart301: r.alerteEcart301,
       copiesNoirBrutes: r.copiesNoirBrutes,
       copiesCouleurBrutes: r.copiesCouleurBrutes,
       copiesNoirFacturer: r.copiesNoirFacturer,
@@ -526,8 +620,7 @@ export class ReadingsService {
       aTraiter:
         r.statut === StatutReleve.ANOMALIE_COMPTEUR ||
         r.statut === StatutReleve.A_CONTROLER ||
-        r.alerteDeltaHaut ||
-        r.alerteEcart301,
+        r.alerteDeltaHaut,
     }));
 
     const file = lignes.filter((l) => l.aTraiter);
@@ -539,7 +632,6 @@ export class ReadingsService {
       resume: {
         total: lignes.length,
         anomalies: lignes.filter((l) => l.anomaly).length,
-        ecartsNonNuls: lignes.filter((l) => !l.ecartOk).length,
         alertesDelta: lignes.filter((l) => l.alerteDeltaHaut).length,
         aControler: lignes.filter((l) => l.statut === StatutReleve.A_CONTROLER).length,
         controles: lignes.filter((l) => l.statut === StatutReleve.CONTROLE).length,
@@ -560,14 +652,12 @@ export class ReadingsService {
         'statut',
         'motif',
         'totalNoir',
-        'c301',
-        'ecart301',
+        'c501',
         'deltaN_brut',
         'deltaN_facturable',
         'deltaC_brut',
         'deltaC_facturable',
         'alerteDelta',
-        'alerte301',
       ].join(';');
       const lines = data.lignes.map((l) =>
         [
@@ -577,14 +667,12 @@ export class ReadingsService {
           l.statut,
           l.observationMotif ?? '',
           l.totalNoir,
-          l.c301 ?? '',
-          l.ecartControle ?? '',
+          l.c501 ?? '',
           l.copiesNoirBrutes,
           l.copiesNoirFacturer,
           l.copiesCouleurBrutes,
           l.copiesCouleurFacturer,
           l.alerteDeltaHaut ? '1' : '0',
-          l.alerteEcart301 ? '1' : '0',
         ].join(';'),
       );
       return { filename: `controle-releves-${mois}.csv`, content: [header, ...lines].join('\n') };
@@ -660,9 +748,7 @@ export class ReadingsService {
           c122: fin.c122,
           c123: fin.c123,
           statut: fin.statut,
-          ecartControle: fin.ecartControle,
           alerteDeltaHaut: fin.alerteDeltaHaut,
-          alerteEcart301: fin.alerteEcart301,
         },
         delta: {
           noir: deltaNoir,
@@ -812,9 +898,10 @@ export class ReadingsService {
       avgDeltaNoir: avgs?.avgDeltaNoir,
       avgDeltaCouleur: avgs?.avgDeltaCouleur,
     });
+    const { anomaly: _anomaly, ...computed } = result;
     if (!previous) {
       return {
-        ...result,
+        ...computed,
         ancienTotalNoir: null,
         ancienTotalCouleur: null,
         ancienScanNoir: null,
@@ -823,7 +910,7 @@ export class ReadingsService {
       };
     }
     return {
-      ...result,
+      ...computed,
       ancienTotalNoir: previous.totalNoir,
       ancienTotalCouleur: previous.totalCouleur,
       ancienScanNoir: previous.scanNoir,
@@ -881,7 +968,6 @@ export class ReadingsService {
       c122: dto.c122 ?? 0,
       c123: dto.c123 ?? 0,
       c501: dto.c501 ?? null,
-      c301: dto.c301 ?? null,
       scanNoir: dto.scanNoir ?? 0,
       scanCouleur: dto.scanCouleur ?? 0,
       envoi: dto.envoi ?? 0,
@@ -901,6 +987,21 @@ export class ReadingsService {
     const facture = await this.prisma.facturePeriode.findUnique({ where: { mois } });
     if (facture?.statut === StatutFacturePeriode.CLOTUREE) {
       throw new BadRequestException(`Periode ${mois} cloturee (facture)`);
+    }
+  }
+
+  private ensureDeletable(row: ReleveCompteur) {
+    if (LOCKED.includes(row.statut)) {
+      throw new ForbiddenException(
+        'Relevé validé — suppression impossible (dévalider d’abord si applicable)',
+      );
+    }
+  }
+
+  private async ensureFactureNonCloturee(mois: string) {
+    const facture = await this.prisma.facturePeriode.findUnique({ where: { mois } });
+    if (facture?.statut === StatutFacturePeriode.CLOTUREE) {
+      throw new BadRequestException(`Période ${mois} clôturée (facture) — suppression impossible`);
     }
   }
 
@@ -939,7 +1040,6 @@ export class ReadingsService {
       c113: row.c113,
       c122: row.c122,
       c123: row.c123,
-      c301: row.c301,
       copiesNoirFacturer: row.copiesNoirFacturer,
       copiesCouleurFacturer: row.copiesCouleurFacturer,
       copiesNoirBrutes: row.copiesNoirBrutes,

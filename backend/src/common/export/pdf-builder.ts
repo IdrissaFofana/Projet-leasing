@@ -24,7 +24,7 @@ function logoPath() {
   return path.join(process.cwd(), 'assets', 'logo-esay.png');
 }
 
-function drawLogos(doc: PDFKit.PDFDocument) {
+export function drawLogos(doc: PDFKit.PDFDocument) {
   const pageW = doc.page.width;
   const margin = doc.page.margins.left;
   const logoFile = logoPath();
@@ -56,7 +56,7 @@ function drawLogos(doc: PDFKit.PDFDocument) {
 }
 
 /** En-tête éditorial (comme page-head du front) : logos + titre + règle bleue. */
-function drawHeader(
+export function drawHeader(
   doc: PDFKit.PDFDocument,
   title: string,
   subtitle?: string,
@@ -116,7 +116,7 @@ function drawHeader(
   return y + 10;
 }
 
-function drawFooter(doc: PDFKit.PDFDocument, note?: string) {
+export function drawFooter(doc: PDFKit.PDFDocument, note?: string) {
   const pageW = doc.page.width;
   const pageH = doc.page.height;
   const margin = doc.page.margins.left;

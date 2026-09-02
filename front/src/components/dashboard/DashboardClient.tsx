@@ -35,6 +35,7 @@ const SHORTCUTS = [
   { href: '/campagnes', label: 'Campagnes', desc: 'Saisie mensuelle' },
   { href: '/maintenance', label: 'Maintenance', desc: 'Interventions' },
   { href: '/facturation', label: 'Facturation', desc: 'Périodes', roles: ['ADMIN', 'FACTURATION'] as const },
+  { href: '/rapports', label: 'Rapports', desc: 'PDF client' },
   { href: '/messagerie', label: 'Messagerie', desc: 'Équipe' },
 ] as const;
 
@@ -204,7 +205,7 @@ export function DashboardClient() {
     ? [
         { label: 'OK', value: control.resume.ok, color: ESAY.blueBtn },
         { label: 'Anomalies', value: control.resume.anomalies, color: ESAY.blue },
-        { label: 'Écarts 301', value: control.resume.ecartsNonNuls, color: ESAY.navySoft },
+        { label: 'À contrôler', value: control.resume.aControler ?? 0, color: ESAY.navySoft },
         { label: 'Bases init.', value: control.resume.bases, color: '#94a3b8' },
       ].filter((s) => s.value > 0)
     : [];

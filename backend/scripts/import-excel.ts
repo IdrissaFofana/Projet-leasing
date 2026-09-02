@@ -557,7 +557,6 @@ async function importReleves(wb: XLSX.WorkBook) {
     c122: number;
     c123: number;
     c501: number | null;
-    c301: number | null;
     scanNoir: number;
     scanCouleur: number;
     envoi: number;
@@ -585,7 +584,6 @@ async function importReleves(wb: XLSX.WorkBook) {
       c122: Math.floor(num(r[9])),
       c123: Math.floor(num(r[10])),
       c501: r[18] == null || r[18] === '' ? null : Math.floor(num(r[18])),
-      c301: r[19] == null || r[19] === '' ? null : Math.floor(num(r[19])),
       scanNoir: Math.floor(num(r[22])),
       scanCouleur: Math.floor(num(r[23])),
       envoi: Math.floor(num(r[24])),
@@ -610,6 +608,7 @@ async function importReleves(wb: XLSX.WorkBook) {
       c113: number;
       c122: number;
       c123: number;
+      c501?: number | null;
       scanNoir: number;
       scanCouleur: number;
       envoi: number;
@@ -633,48 +632,13 @@ async function importReleves(wb: XLSX.WorkBook) {
       c113: row.c113,
       c122: row.c122,
       c123: row.c123,
-      c301: row.c301,
+      c501: row.c501,
       scanNoir: row.scanNoir,
       scanCouleur: row.scanCouleur,
       envoi: row.envoi,
     };
 
-    let computed;
-    if (isFirst) {
-      const totalNoir = row.c112 + row.c113;
-      const totalCouleur = row.c122 + row.c123;
-      computed = {
-        totalNoir,
-        totalCouleur,
-        copiesNoirBrutes: 0,
-        copiesCouleurBrutes: 0,
-        scansNoirBruts: 0,
-        scansCouleurBruts: 0,
-        envoisBruts: 0,
-        copiesNoirDelta: 0,
-        copiesCouleurDelta: 0,
-        quotaNoirDispo: 1000,
-        quotaCouleurDispo: 2000,
-        copiesNoirIncluses: 0,
-        copiesCouleurIncluses: 0,
-        quotaNoirReport: 1000,
-        quotaCouleurReport: 2000,
-        copiesNoirFacturer: 0,
-        copiesCouleurFacturer: 0,
-        totalCopiesFacturer: 0,
-        scansNoirFacturer: 0,
-        scansCouleurFacturer: 0,
-        envoisFacturer: 0,
-        ecartControle:
-          row.c301 != null ? row.c301 - totalNoir : null,
-        alerteDeltaHaut: false,
-        alerteEcart301: false,
-        statut: StatutReleve.BASE_INITIALE,
-        anomaly: false,
-      };
-    } else {
-      computed = computeReleve(counters, prev!);
-    }
+    const computed = computeReleve(counters, prev);
 
     const statutExcel = mapStatutReleve(row.statutRaw, isFirst);
     const statut =
@@ -696,7 +660,6 @@ async function importReleves(wb: XLSX.WorkBook) {
         c122: row.c122,
         c123: row.c123,
         c501: row.c501,
-        c301: row.c301,
         scanNoir: row.scanNoir,
         scanCouleur: row.scanCouleur,
         envoi: row.envoi,
@@ -726,9 +689,7 @@ async function importReleves(wb: XLSX.WorkBook) {
         scansNoirFacturer: computed.scansNoirFacturer,
         scansCouleurFacturer: computed.scansCouleurFacturer,
         envoisFacturer: computed.envoisFacturer,
-        ecartControle: computed.ecartControle,
         alerteDeltaHaut: computed.alerteDeltaHaut,
-        alerteEcart301: computed.alerteEcart301,
         statut,
         observations: row.observations,
       },
@@ -741,6 +702,7 @@ async function importReleves(wb: XLSX.WorkBook) {
       c113: row.c113,
       c122: row.c122,
       c123: row.c123,
+      c501: row.c501,
       scanNoir: row.scanNoir,
       scanCouleur: row.scanCouleur,
       envoi: row.envoi,

@@ -59,7 +59,7 @@ Par défaut, le script lit `Projet de suivie/Gestion cartouche et imprimante.xls
 
 ## Règles métier côté serveur
 
-1. Relevés : totaux 112+113 / 122+123 ; delta `max(0, actuel − précédent)` ; écart `301 − totalNoir`
+1. Relevés : totaux 112+113 / 122+123 ; delta 501 ajouté au couleur ; delta `max(0, actuel − précédent)`
 2. Stock : solde recalculé uniquement via service (entrées / affectations)
 3. Facture : snapshot tarifs ; clôture bloque les écritures du mois
 

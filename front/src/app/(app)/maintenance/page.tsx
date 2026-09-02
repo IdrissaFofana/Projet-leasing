@@ -20,15 +20,38 @@ const TYPES = [
   'CONTROLE_PERIODIQUE',
 ] as const;
 
+const TYPE_LABEL: Record<(typeof TYPES)[number], string> = {
+  ASSISTANCE: 'Assistance',
+  PREVENTIVE: 'Préventive',
+  CORRECTIVE: 'Corrective',
+  DEPANNAGE: 'Dépannage',
+  NETTOYAGE: 'Nettoyage',
+  REMPLACEMENT_PIECE: 'Remplacement pièce',
+  CONTROLE_PERIODIQUE: 'Contrôle périodique',
+};
+
 const emptyForm = () => ({
   dateMaintenance: new Date().toISOString().slice(0, 10),
-  imprimanteId: '',
-  type: 'ASSISTANCE',
+  imprimanteIds: [] as string[],
+  taches: ['ASSISTANCE'] as string[],
+  horsQuota: false,
   technicienId: '',
   assigneeUserId: '',
   actionsRealisees: '',
   prochaineMaintenance: '',
 });
+
+function copieursLabel(row: Maintenance) {
+  const codes =
+    row.imprimantes?.map((l) => l.imprimante?.code).filter(Boolean) ??
+    (row.imprimante?.code ? [row.imprimante.code] : []);
+  return codes.join(', ') || '—';
+}
+
+function tachesLabel(row: Maintenance) {
+  const list = row.taches?.length ? row.taches : row.type ? [row.type] : [];
+  return list.map((t) => TYPE_LABEL[t as keyof typeof TYPE_LABEL] ?? t).join(', ') || '—';
+}
 
 export default function MaintenanceInterventionsPage() {
   const [rows, setRows] = useState<Maintenance[]>([]);
@@ -41,6 +64,7 @@ export default function MaintenanceInterventionsPage() {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [rapportFile, setRapportFile] = useState<File | null>(null);
+  const [exportingId, setExportingId] = useState<string | null>(null);
   const { sortKey, sortDir, toggle, sort } = useTableSort<Maintenance>('dateMaintenance', 'desc');
 
   async function load() {
@@ -57,7 +81,7 @@ export default function MaintenanceInterventionsPage() {
     setAssignees(users);
     setForm((f) => ({
       ...f,
-      imprimanteId: f.imprimanteId || active[0]?.id || '',
+      imprimanteIds: f.imprimanteIds.length ? f.imprimanteIds : active[0]?.id ? [active[0].id] : [],
       technicienId: f.technicienId || a[0]?.id || '',
     }));
   }
@@ -74,7 +98,7 @@ export default function MaintenanceInterventionsPage() {
     setRapportFile(null);
     setForm({
       ...emptyForm(),
-      imprimanteId: printers[0]?.id || '',
+      imprimanteIds: printers[0]?.id ? [printers[0].id] : [],
       technicienId: agents[0]?.id || '',
       assigneeUserId: '',
     });
@@ -89,8 +113,9 @@ export default function MaintenanceInterventionsPage() {
     try {
       const created = await api.maintenance.create({
         dateMaintenance: form.dateMaintenance,
-        imprimanteId: form.imprimanteId,
-        type: form.type,
+        imprimanteIds: form.imprimanteIds,
+        taches: form.taches,
+        horsQuota: form.taches.includes('ASSISTANCE') ? form.horsQuota : undefined,
         technicienId: form.technicienId || undefined,
         assigneeUserId: form.assigneeUserId || undefined,
         actionsRealisees: form.actionsRealisees || undefined,
@@ -109,6 +134,20 @@ export default function MaintenanceInterventionsPage() {
     }
   }
 
+  async function genererRapport(row: Maintenance) {
+    setExportingId(row.id);
+    setError(null);
+    setOk(null);
+    try {
+      await api.reports.intervention(row.id, row.code);
+      setOk(`Rapport ${row.code} téléchargé`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Génération du rapport impossible');
+    } finally {
+      setExportingId(null);
+    }
+  }
+
   const sortedRows = useMemo(
     () =>
       sort(rows, (row, key) => {
@@ -116,7 +155,7 @@ export default function MaintenanceInterventionsPage() {
         if (key === 'dateMaintenance') return row.dateMaintenance;
         if (key === 'imprimante') return row.imprimante?.code ?? '';
         if (key === 'localisation') return row.imprimante?.localisation ?? '';
-        if (key === 'type') return row.type;
+        if (key === 'type') return tachesLabel(row);
         if (key === 'technicien') return row.technicien?.nom ?? '';
         if (key === 'assignee') return row.assigneeUser?.nom ?? '';
         return '';
@@ -149,12 +188,12 @@ export default function MaintenanceInterventionsPage() {
         open={open}
         eyebrow="NOUVEAU"
         title="Nouvelle intervention"
-        subtitle="Les assistances comptent dans le quota mensuel (3 / copieur)."
+        subtitle="1 assistance incluse par copieur et par mois. Une intervention peut cumuler plusieurs tâches et plusieurs copieurs."
         onClose={() => setOpen(false)}
         footer={
           <>
             <ModalCloseButton onClick={() => setOpen(false)} label="Annuler" />
-            <ModalSubmitButton form="maintenance-form" disabled={saving}>
+            <ModalSubmitButton form="maintenance-form" disabled={saving || form.imprimanteIds.length === 0 || form.taches.length === 0}>
               {saving ? 'Enregistrement…' : 'Enregistrer'}
             </ModalSubmitButton>
           </>
@@ -173,39 +212,85 @@ export default function MaintenanceInterventionsPage() {
               />
             </div>
           </div>
-          <div className="modal-form-row">
-            <label>Type</label>
+          <div className="modal-form-row is-top">
+            <label>Tâches</label>
             <div className="modal-field">
-              <select
-                className="modal-select"
-                value={form.type}
-                onChange={(e) => setForm({ ...form, type: e.target.value })}
-              >
-                {TYPES.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
+              <div className="checkbox-list">
+                {TYPES.map((t) => {
+                  const checked = form.taches.includes(t);
+                  return (
+                    <label key={t} className="checkbox-row" style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            taches: e.target.checked
+                              ? [...f.taches, t]
+                              : f.taches.filter((x) => x !== t),
+                          }));
+                        }}
+                      />
+                      <span>{TYPE_LABEL[t]}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {form.taches.length === 0 ? (
+                <p className="muted" style={{ marginTop: 6, fontSize: '0.85rem' }}>
+                  Sélectionnez au moins une tâche.
+                </p>
+              ) : null}
             </div>
           </div>
-          <div className="modal-form-row">
-            <label>Copieur</label>
+          <div className="modal-form-row is-top">
+            <label>Copieurs</label>
             <div className="modal-field">
-              <select
-                className="modal-select"
-                required
-                value={form.imprimanteId}
-                onChange={(e) => setForm({ ...form, imprimanteId: e.target.value })}
-              >
-                {printers.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.code} — {p.localisation ?? p.modele}
-                  </option>
-                ))}
-              </select>
+              <div className="checkbox-list" style={{ maxHeight: 180, overflowY: 'auto' }}>
+                {printers.map((p) => {
+                  const checked = form.imprimanteIds.includes(p.id);
+                  return (
+                    <label key={p.id} className="checkbox-row" style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setForm((f) => ({
+                            ...f,
+                            imprimanteIds: e.target.checked
+                              ? [...f.imprimanteIds, p.id]
+                              : f.imprimanteIds.filter((id) => id !== p.id),
+                          }));
+                        }}
+                      />
+                      <span>{p.code} — {p.localisation ?? p.modele}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              {form.imprimanteIds.length === 0 ? (
+                <p className="muted" style={{ marginTop: 6, fontSize: '0.85rem' }}>
+                  Sélectionnez au moins un copieur.
+                </p>
+              ) : null}
             </div>
           </div>
+          {form.taches.includes('ASSISTANCE') ? (
+            <div className="modal-form-row">
+              <label>Panne</label>
+              <div className="modal-field">
+                <label className="checkbox-row" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={form.horsQuota}
+                    onChange={(e) => setForm({ ...form, horsQuota: e.target.checked })}
+                  />
+                  <span>Panne signalée (hors quota mensuel)</span>
+                </label>
+              </div>
+            </div>
+          ) : null}
           <div className="modal-form-row">
             <label>Technicien</label>
             <div className="modal-field">
@@ -279,9 +364,9 @@ export default function MaintenanceInterventionsPage() {
             <tr>
               <SortTh label="Code" sortKey="code" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Date" sortKey="dateMaintenance" activeKey={sortKey} direction={sortDir} onSort={toggle} />
-              <SortTh label="Copieur" sortKey="imprimante" activeKey={sortKey} direction={sortDir} onSort={toggle} />
+              <SortTh label="Copieur(s)" sortKey="imprimante" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Localisation" sortKey="localisation" activeKey={sortKey} direction={sortDir} onSort={toggle} />
-              <SortTh label="Type" sortKey="type" activeKey={sortKey} direction={sortDir} onSort={toggle} />
+              <SortTh label="Tâches" sortKey="type" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Technicien" sortKey="technicien" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Assigné" sortKey="assignee" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <th className="col-actions" />
@@ -292,17 +377,32 @@ export default function MaintenanceInterventionsPage() {
               <tr key={r.id}>
                 <td className="mono">{r.code}</td>
                 <td>{formatDate(r.dateMaintenance)}</td>
-                <td>{r.imprimante?.code}</td>
-                <td>{r.imprimante?.localisation ?? '—'}</td>
+                <td>{copieursLabel(r)}</td>
+                <td>{r.imprimante?.localisation ?? r.imprimantes?.[0]?.imprimante?.localisation ?? '—'}</td>
                 <td>
-                  <span className="badge badge-info">{r.type}</span>
+                  <span className="badge badge-info">{tachesLabel(r)}</span>
+                  {r.horsQuota ? (
+                    <span className="badge badge-warn" style={{ marginLeft: 6 }}>Panne</span>
+                  ) : r.releveId ? (
+                    <span className="badge badge-info" style={{ marginLeft: 6 }}>Prélèvement</span>
+                  ) : null}
                 </td>
                 <td>{r.technicien?.nom ?? '—'}</td>
                 <td>{r.assigneeUser?.nom ?? '—'}</td>
                 <td className="col-actions">
-                  <Link href={`/maintenance/${r.id}`} className="btn btn-soft">
-                    Détail
-                  </Link>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      className="btn btn-esay"
+                      disabled={exportingId === r.id}
+                      onClick={() => void genererRapport(r)}
+                    >
+                      {exportingId === r.id ? '…' : 'Générer rapport'}
+                    </button>
+                    <Link href={`/maintenance/${r.id}`} className="btn btn-soft">
+                      Détail
+                    </Link>
+                  </div>
                 </td>
               </tr>
             ))}

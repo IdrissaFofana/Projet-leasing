@@ -2091,6 +2091,71 @@ a {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--esay-blue) 16%, transparent);
 }
 
+.input-readonly {
+  background: var(--surface-muted, #f4f6f8);
+  color: var(--ink-soft);
+  cursor: default;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.counter-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.counter-pair--compact {
+  align-items: flex-end;
+}
+
+.counter-pair-prev,
+.counter-pair-new {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  width: 100%;
+}
+
+.counter-pair-label {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+}
+
+.previous-reading-banner {
+  margin-bottom: 0.85rem;
+  padding: 0.85rem;
+}
+
+.previous-reading-banner--empty {
+  margin: 0 0 0.85rem;
+  padding: 0.5rem 0;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+}
+
+.th-sub {
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  margin-top: 0.15rem;
+}
+
+.ligne-prev-hint {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  margin-top: 0.2rem;
+  max-width: 140px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .btn {
   border: 1px solid transparent;
   border-radius: 3px;
@@ -4785,6 +4850,28 @@ a {
 .backup-meta dd {
   margin: 0;
   font-size: 0.92rem;
+}
+
+.camp-printer-pick {
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--line, #e5e7eb);
+  border-radius: 8px;
+  padding: 0.35rem 0;
+}
+
+.camp-printer-pick-row {
+  display: grid;
+  grid-template-columns: auto 5rem 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.45rem 0.75rem;
+  cursor: pointer;
+  font-size: 0.88rem;
+}
+
+.camp-printer-pick-row:hover {
+  background: rgba(0, 140, 167, 0.04);
 }
 
 .perms-chip:hover {

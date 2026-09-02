@@ -79,6 +79,30 @@ export default function FacturationPage() {
         <Link href={`/facturation/${mois}`} className="btn btn-soft">
           Voir détail {mois}
         </Link>
+        <button
+          type="button"
+          className="btn btn-esay"
+          disabled={busy}
+          onClick={() =>
+            void api.reports.leasingMensuelle(mois).catch((e) =>
+              setError(e instanceof ApiError ? e.message : 'Rapport impossible'),
+            )
+          }
+        >
+          Rapport Leasing mensuel
+        </button>
+        <button
+          type="button"
+          className="btn btn-soft"
+          disabled={busy}
+          onClick={() =>
+            void api.reports.leasingAnnuelle(mois.slice(0, 4)).catch((e) =>
+              setError(e instanceof ApiError ? e.message : 'Rapport annuel impossible'),
+            )
+          }
+        >
+          Rapport Leasing annuel {mois.slice(0, 4)}
+        </button>
       </div>
 
       <PageFeedback

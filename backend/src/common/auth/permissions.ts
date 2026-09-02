@@ -9,6 +9,7 @@ export const MODULES = [
   'campaigns',
   'billing',
   'maintenance',
+  'reports',
   'referentiels',
   'users',
   'messages',
@@ -32,6 +33,7 @@ export const MODULE_LABELS: Record<ModulePermission, string> = {
   campaigns: 'Campagnes',
   billing: 'Facturation',
   maintenance: 'Maintenance',
+  reports: 'Rapports',
   referentiels: 'Référentiels',
   users: 'Utilisateurs',
   messages: 'Messagerie',
@@ -57,6 +59,8 @@ export const MODULE_ACTIONS: Record<ModulePermission, readonly CrudAction[]> = {
   campaigns: CRUD_ACTIONS,
   billing: CRUD_ACTIONS,
   maintenance: CRUD_ACTIONS,
+  /** Génération PDF client — lecture seule */
+  reports: ['read'],
   referentiels: CRUD_ACTIONS,
   users: CRUD_ACTIONS,
   /** Lecture historique + création = déclenchement manuel */
@@ -122,13 +126,14 @@ export const DEFAULT_CRUD_BY_ROLE: Record<string, PermissionKey[]> = {
       'readings',
       'campaigns',
       'maintenance',
+      'reports',
       'messages',
     ],
     ['read', 'create', 'update'],
   ),
   FACTURATION: [
     ...expandModulesToCrud(
-      ['dashboard', 'printers', 'readings', 'campaigns', 'messages'],
+      ['dashboard', 'printers', 'readings', 'campaigns', 'messages', 'reports'],
       ['read'],
     ),
     ...expandModulesToCrud(['billing', 'campaigns'], ['read', 'create', 'update']),
@@ -142,6 +147,7 @@ export const DEFAULT_CRUD_BY_ROLE: Record<string, PermissionKey[]> = {
       'readings',
       'campaigns',
       'maintenance',
+      'reports',
       'messages',
     ],
     ['read'],
@@ -160,6 +166,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<string, ModulePermission[]> = {
     'readings',
     'campaigns',
     'maintenance',
+    'reports',
     'messages',
   ],
   FACTURATION: [
@@ -168,6 +175,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<string, ModulePermission[]> = {
     'readings',
     'campaigns',
     'billing',
+    'reports',
     'messages',
   ],
   LECTURE: [
@@ -178,6 +186,7 @@ export const DEFAULT_PERMISSIONS_BY_ROLE: Record<string, ModulePermission[]> = {
     'readings',
     'campaigns',
     'maintenance',
+    'reports',
     'messages',
   ],
 };

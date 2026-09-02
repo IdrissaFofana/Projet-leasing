@@ -68,13 +68,6 @@ export class CreateReadingDto {
   @Min(0)
   c501?: number;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  c301?: number;
-
   @ApiPropertyOptional({ default: 0 })
   @IsOptional()
   @Type(() => Number)
@@ -157,13 +150,6 @@ export class UpdateReadingDto {
   @IsInt()
   @Min(0)
   c501?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  c301?: number;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -349,13 +335,6 @@ export class ImportReadingRowDto {
   @IsInt()
   @Min(0)
   c123?: number;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(0)
-  c301?: number;
 
   @ApiPropertyOptional()
   @IsOptional()

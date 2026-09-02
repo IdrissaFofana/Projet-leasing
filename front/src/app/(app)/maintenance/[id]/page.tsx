@@ -9,11 +9,22 @@ import { api, ApiError } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import type { Maintenance } from '@/lib/types';
 
+const TYPE_LABEL: Record<string, string> = {
+  ASSISTANCE: 'Assistance',
+  PREVENTIVE: 'Préventive',
+  CORRECTIVE: 'Corrective',
+  DEPANNAGE: 'Dépannage',
+  NETTOYAGE: 'Nettoyage',
+  REMPLACEMENT_PIECE: 'Remplacement pièce',
+  CONTROLE_PERIODIQUE: 'Contrôle périodique',
+};
+
 export default function MaintenanceDetailPage() {
   const params = useParams<{ id: string }>();
   const [row, setRow] = useState<Maintenance | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   async function load() {
     try {
@@ -27,6 +38,20 @@ export default function MaintenanceDetailPage() {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
+
+  async function exportPdf() {
+    if (!row) return;
+    setExporting(true);
+    setError(null);
+    try {
+      await api.reports.intervention(row.id, row.code);
+      setOk('Rapport PDF téléchargé');
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Export impossible');
+    } finally {
+      setExporting(false);
+    }
+  }
 
   if (!row && !error) {
     return (
@@ -46,16 +71,31 @@ export default function MaintenanceDetailPage() {
     );
   }
 
-  const p = row.imprimante;
+  const taches = row.taches?.length ? row.taches : [row.type];
 
   return (
     <>
-      <div className="page-head">
-        <h1>{row.code}</h1>
-        <p>
-          <Link href="/maintenance">← Interventions</Link> ·{' '}
-          <span className="badge badge-info">{row.type}</span> · {formatDate(row.dateMaintenance)}
-        </p>
+      <div className="page-head page-head-row">
+        <div>
+          <h1>{row.code}</h1>
+          <p>
+            <Link href="/maintenance">← Interventions</Link> ·{' '}
+            {taches.map((t) => (
+              <span key={t} className="badge badge-info" style={{ marginRight: 6 }}>
+                {TYPE_LABEL[t] ?? t}
+              </span>
+            ))}{' '}
+            · {formatDate(row.dateMaintenance)}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn btn-esay"
+          disabled={exporting}
+          onClick={() => void exportPdf()}
+        >
+          {exporting ? 'Export…' : 'Rapport PDF'}
+        </button>
       </div>
 
       <PageFeedback
@@ -68,30 +108,42 @@ export default function MaintenanceDetailPage() {
       />
 
       <div className="panel" style={{ marginBottom: '1rem' }}>
-        <h2>Copieur</h2>
+        <h2>Copieur(s) concerné(s)</h2>
         <div className="form-grid">
-          <div>
-            Code : <strong className="mono">{p?.code ?? '—'}</strong>
-          </div>
-          <div>
-            Localisation / position : <strong>{p?.localisation ?? '—'}</strong>
-          </div>
-          <div>
-            Modèle : <strong>{p?.modele ?? '—'}</strong>
-          </div>
-          <div>
-            N° série : <strong>{p?.numeroSerie ?? '—'}</strong>
-          </div>
-          <div>
-            Marque : <strong>{p?.marque?.nom ?? '—'}</strong>
-          </div>
-          <div>
-            Service : <strong>{p?.service?.nom ?? '—'}</strong>
-          </div>
-          <div>
-            Statut machine : <strong>{p?.statut ?? '—'}</strong>
-          </div>
+          {(row.imprimantes?.length
+            ? row.imprimantes
+            : row.imprimante
+              ? [{ imprimante: row.imprimante }]
+              : []
+          ).map((l) => (
+            <div key={l.imprimante?.id ?? l.imprimante?.code}>
+              <strong className="mono">{l.imprimante?.code ?? '—'}</strong>
+              {' — '}
+              {l.imprimante?.localisation ?? '—'}
+            </div>
+          ))}
         </div>
+        {taches.includes('ASSISTANCE') ? (
+          <p style={{ marginTop: 12 }}>
+            Quota :{' '}
+            {row.horsQuota ? (
+              <span className="badge badge-warn">Panne signalée (hors quota)</span>
+            ) : row.releveId ? (
+              <span className="badge badge-info">Prélèvement compteur (hors quota)</span>
+            ) : (
+              <span className="badge badge-ok">Assistance incluse</span>
+            )}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="panel" style={{ marginBottom: '1rem' }}>
+        <h2>Tâches réalisées</h2>
+        <ol style={{ margin: 0, paddingLeft: '1.25rem' }}>
+          {taches.map((t) => (
+            <li key={t}>{TYPE_LABEL[t] ?? t}</li>
+          ))}
+        </ol>
       </div>
 
       <div className="panel" style={{ marginBottom: '1rem' }}>
@@ -135,7 +187,7 @@ export default function MaintenanceDetailPage() {
       </div>
 
       <div className="panel">
-        <h2>Rapport d’assistance</h2>
+        <h2>Rapport d’assistance (pièce jointe)</h2>
         {row.rapportNom ? (
           <p>
             Fichier : <strong>{row.rapportNom}</strong>{' '}

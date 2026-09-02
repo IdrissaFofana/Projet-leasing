@@ -417,26 +417,54 @@ export const api = {
       uploadFile<Releve>(`/readings/${id}/rapport`, file),
     downloadRapport: (id: string, filename = 'rapport-compteur') =>
       downloadFile(`/readings/${id}/rapport`, filename),
+    delete: (id: string) =>
+      request<{
+        ok: boolean;
+        code: string;
+        moisFacture: string;
+        factureRecalculRequise: boolean;
+        campagneRouverte: boolean;
+      }>(`/readings/${id}`, { method: 'DELETE' }),
   },
 
   // Campagnes
   campaigns: {
     list: () => request<Campagne[]>('/campaigns'),
     get: (mois: string) => request<Campagne>(`/campaigns/${mois}`),
-    create: (data: { mois: string; dateReleve: string; heureReleve?: string }) =>
+    create: (data: {
+      mois: string;
+      dateReleve: string;
+      heureReleve?: string;
+      portee?: 'ALL' | 'SELECTION';
+      imprimanteIds?: string[];
+    }) =>
       request<Campagne>('/campaigns', { method: 'POST', body: JSON.stringify(data) }),
+    addLignes: (mois: string, imprimanteIds: string[]) =>
+      request<Campagne>(`/campaigns/${mois}/lignes`, {
+        method: 'POST',
+        body: JSON.stringify({ imprimanteIds }),
+      }),
+    removeLigne: (mois: string, printerId: string) =>
+      request<Campagne>(`/campaigns/${mois}/lignes/${printerId}`, { method: 'DELETE' }),
+    delete: (mois: string) =>
+      request<{ ok: boolean; mois: string }>(`/campaigns/${mois}`, { method: 'DELETE' }),
     updateLigne: (mois: string, printerId: string, data: Record<string, unknown>) =>
       request<CampagneLigne>(`/campaigns/${mois}/lignes/${printerId}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
+    uploadRapportLigne: (mois: string, printerId: string, file: File) =>
+      uploadFile<Campagne>(`/campaigns/${mois}/lignes/${printerId}/rapport`, file),
+    downloadRapportLigne: (mois: string, printerId: string, filename = 'rapport-compteur') =>
+      downloadFile(`/campaigns/${mois}/lignes/${printerId}/rapport`, filename),
     archive: (mois: string) =>
       request<{
         mois: string;
-        archives: Array<{ code?: string; error?: string }>;
+        archives: Array<{ imprimanteId?: string; code?: string; error?: string }>;
         campagneCloturee: boolean;
         restantes: number;
       }>(`/campaigns/${mois}/archive`, { method: 'POST' }),
+    reopen: (mois: string) => request<Campagne>(`/campaigns/${mois}/reopen`, { method: 'POST' }),
     exportFile: (mois: string, format: 'xlsx' | 'pdf') =>
       downloadFile(
         `/campaigns/${mois}/export${qs({ format })}`,
@@ -470,6 +498,28 @@ export const api = {
         `/billing/periods/${mois}/export${qs({ format })}`,
         `facture-${mois}.${format}`,
       ),
+  },
+
+  // Rapports
+  reports: {
+    leasingMensuelle: (mois: string) =>
+      downloadFile(`/reports/leasing-mensuelle/${mois}`, `leasing-mensuelle-${mois}.pdf`),
+    leasingAnnuelle: (annee: string) =>
+      downloadFile(`/reports/leasing-annuelle/${annee}`, `leasing-annuelle-${annee}.pdf`),
+    leasingSemestrielle: (annee: string, semestre: 1 | 2) =>
+      downloadFile(
+        `/reports/leasing-semestrielle/${annee}/${semestre}`,
+        `leasing-semestrielle-${annee}-S${semestre}.pdf`,
+      ),
+    leasingTrimestrielle: (annee: string, trimestre: 1 | 2 | 3 | 4) =>
+      downloadFile(
+        `/reports/leasing-trimestrielle/${annee}/${trimestre}`,
+        `leasing-trimestrielle-${annee}-T${trimestre}.pdf`,
+      ),
+    intervention: (id: string, code = 'intervention') =>
+      downloadFile(`/reports/intervention/${id}`, `intervention-${code}.pdf`),
+    modeleLeasingMensuelle: () =>
+      downloadFile(`/reports/modele/leasing-mensuelle`, `modele-leasing-mensuelle.pdf`),
   },
 
   // Maintenance

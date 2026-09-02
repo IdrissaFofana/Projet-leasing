@@ -10,6 +10,7 @@ export type ModulePermission =
   | 'campaigns'
   | 'billing'
   | 'maintenance'
+  | 'reports'
   | 'referentiels'
   | 'users'
   | 'messages'
@@ -254,6 +255,7 @@ export type StatutReleve =
 
 export type ObservationReleve =
   | 'RAS'
+  | 'PRELEVEMENT_MENSUEL'
   | 'RESET_COMPTEUR'
   | 'MACHINE_REMPLACEE'
   | 'RELEVE_ESTIME'
@@ -262,6 +264,7 @@ export type ObservationReleve =
 
 export const OBSERVATION_RELEVE_LABEL: Record<ObservationReleve, string> = {
   RAS: 'RAS',
+  PRELEVEMENT_MENSUEL: 'Prélèvement mensuel',
   RESET_COMPTEUR: 'Reset compteur',
   MACHINE_REMPLACEE: 'Machine remplacée',
   RELEVE_ESTIME: 'Relevé estimé',
@@ -289,7 +292,6 @@ export type Releve = {
   c122: number;
   c123: number;
   c501: number | null;
-  c301: number | null;
   scanNoir: number;
   scanCouleur: number;
   envoi: number;
@@ -313,9 +315,7 @@ export type Releve = {
   scansNoirFacturer?: number;
   scansCouleurFacturer?: number;
   envoisFacturer?: number;
-  ecartControle: number | null;
   alerteDeltaHaut?: boolean;
-  alerteEcart301?: boolean;
   statut: StatutReleve;
   observationMotif?: ObservationReleve | null;
   observations: string | null;
@@ -336,7 +336,6 @@ export type PreviousReading = {
   c113: number;
   c122: number;
   c123: number;
-  c301: number | null;
   c501: number | null;
   scanNoir: number;
   scanCouleur: number;
@@ -345,6 +344,10 @@ export type PreviousReading = {
   totalCouleur: number;
   copiesNoirFacturer: number;
   copiesCouleurFacturer: number;
+  copiesNoirDelta?: number;
+  copiesCouleurDelta?: number;
+  quotaNoirReport?: number;
+  quotaCouleurReport?: number;
 } | null;
 
 export type MonthlyView = {
@@ -359,9 +362,7 @@ export type MonthlyView = {
       totalCouleur: number;
       code: string;
       statut: string;
-      ecartControle: number | null;
       alerteDeltaHaut?: boolean;
-      alerteEcart301?: boolean;
     };
     delta: {
       noir: number;
@@ -438,12 +439,9 @@ export type ControlView = {
     observationMotif?: string | null;
     totalNoir: number;
     totalCouleur?: number;
-    c301: number | null;
-    ecartControle: number | null;
-    ecartOk: boolean;
+    c501: number | null;
     anomaly: boolean;
     alerteDeltaHaut?: boolean;
-    alerteEcart301?: boolean;
     copiesNoirBrutes?: number;
     copiesCouleurBrutes?: number;
     copiesNoirFacturer?: number;
@@ -454,7 +452,6 @@ export type ControlView = {
   resume: {
     total: number;
     anomalies: number;
-    ecartsNonNuls: number;
     alertesDelta?: number;
     aControler?: number;
     controles?: number;
@@ -465,11 +462,14 @@ export type ControlView = {
   };
 };
 
+export type PorteeCampagne = 'ALL' | 'SELECTION';
+
 export type Campagne = {
   id: string;
   mois: string;
   dateReleve: string;
   heureReleve: string | null;
+  portee?: PorteeCampagne;
   cloturee: boolean;
   lignes?: CampagneLigne[];
   _count?: { lignes: number };
@@ -483,7 +483,6 @@ export type CampagneLigne = {
   c122: number | null;
   c123: number | null;
   c501: number | null;
-  c301: number | null;
   scanNoir: number | null;
   scanCouleur: number | null;
   envoi: number | null;
@@ -491,6 +490,13 @@ export type CampagneLigne = {
   observationMotif?: string | null;
   observations: string | null;
   archiveVersReleveId: string | null;
+  rapportNom?: string | null;
+  rapportPath?: string | null;
+  rapportMime?: string | null;
+  releveRapportNom?: string | null;
+  releveRapportPath?: string | null;
+  /** Dernier relevé officiel avant le mois de campagne (informatif). */
+  previous?: PreviousReading | null;
   imprimante?: Imprimante;
 };
 
@@ -524,6 +530,8 @@ export type Maintenance = {
   dateMaintenance: string;
   imprimanteId: string;
   type: string;
+  taches?: string[];
+  horsQuota?: boolean;
   technicienId: string | null;
   assigneeUserId?: string | null;
   actionsRealisees: string | null;
@@ -536,6 +544,7 @@ export type Maintenance = {
   rapportNom?: string | null;
   rapportMime?: string | null;
   imprimante?: Imprimante;
+  imprimantes?: Array<{ imprimanteId: string; imprimante: Imprimante }>;
   technicien?: NamedRef | null;
   assigneeUser?: { id: string; nom: string; email: string } | null;
   releve?: { id: string; code: string; moisFacture: string } | null;
@@ -550,6 +559,9 @@ export type AssistanceQuota = {
     code: string;
     localisation: string | null;
     faites: number;
+    panne?: number;
+    prelevements?: number;
+    total?: number;
     prevues: number;
     restantes: number;
     complet: boolean;

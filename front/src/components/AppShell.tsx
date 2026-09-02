@@ -18,6 +18,7 @@ type NavKey =
   | 'campaigns'
   | 'billing'
   | 'maintenance'
+  | 'reports'
   | 'admin'
   | 'users';
 
@@ -48,6 +49,7 @@ const NAV: NavItem[] = [
   { href: '/releves', label: 'Relevés', icon: 'readings', permission: 'readings' },
   { href: '/campagnes', label: 'Campagnes', icon: 'campaigns', permission: 'campaigns' },
   { href: '/facturation', label: 'Facturation', icon: 'billing', permission: 'billing' },
+  { href: '/rapports', label: 'Rapports', icon: 'reports', permission: 'reports' },
   {
     href: '/maintenance',
     label: 'Maintenance',
@@ -101,6 +103,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/releves': 'Relevés',
   '/campagnes': 'Campagnes',
   '/facturation': 'Facturation',
+  '/rapports': 'Rapports',
   '/maintenance': 'Interventions',
   '/maintenance/quotas': 'Quotas assistances',
   '/referentiels': 'Référentiels',
@@ -215,6 +218,18 @@ function NavIcon({ name }: { name: NavKey }) {
         <svg {...common}>
           <rect x="4.5" y="5" width="15" height="14" rx="1.6" stroke="currentColor" strokeWidth="1.6" />
           <path d="M8 9h8M8 12.5h8M8 16h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      );
+    case 'reports':
+      return (
+        <svg {...common}>
+          <path
+            d="M8 4h6.2L18 7.8V20a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z"
+            stroke="currentColor"
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          />
+          <path d="M14 4.2V8h3.8M9 12h6M9 15.5h4M9 18.5h3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case 'maintenance':

@@ -1,6 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { TypeMaintenance } from '@prisma/client';
 import {
+  ArrayMinSize,
+  IsArray,
+  IsBoolean,
   IsDateString,
   IsEnum,
   IsOptional,
@@ -17,13 +20,39 @@ export class CreateMaintenanceDto {
   @IsString()
   heureMaintenance?: string;
 
-  @ApiProperty()
+  @ApiPropertyOptional({ description: 'Copieur principal (legacy — préférer imprimanteIds)' })
+  @IsOptional()
   @IsString()
-  imprimanteId!: string;
+  imprimanteId?: string;
 
-  @ApiProperty({ enum: TypeMaintenance })
+  @ApiProperty({ type: [String], description: 'Un ou plusieurs copieurs concernés' })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  imprimanteIds!: string[];
+
+  @ApiPropertyOptional({ enum: TypeMaintenance, description: 'Type principal (legacy — dérivé de taches si omis)' })
+  @IsOptional()
   @IsEnum(TypeMaintenance)
-  type!: TypeMaintenance;
+  type?: TypeMaintenance;
+
+  @ApiPropertyOptional({
+    enum: TypeMaintenance,
+    isArray: true,
+    description: 'Une ou plusieurs tâches réalisées sur l’intervention',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsEnum(TypeMaintenance, { each: true })
+  taches?: TypeMaintenance[];
+
+  @ApiPropertyOptional({
+    description: 'Panne signalée — assistance hors quota mensuel (plusieurs autorisées)',
+  })
+  @IsOptional()
+  @IsBoolean()
+  horsQuota?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -67,10 +96,29 @@ export class UpdateMaintenanceDto {
   @IsString()
   heureMaintenance?: string;
 
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  imprimanteIds?: string[];
+
   @ApiPropertyOptional({ enum: TypeMaintenance })
   @IsOptional()
   @IsEnum(TypeMaintenance)
   type?: TypeMaintenance;
+
+  @ApiPropertyOptional({ enum: TypeMaintenance, isArray: true })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsEnum(TypeMaintenance, { each: true })
+  taches?: TypeMaintenance[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  horsQuota?: boolean;
 
   @ApiPropertyOptional()
   @IsOptional()

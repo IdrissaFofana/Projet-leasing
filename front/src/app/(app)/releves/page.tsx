@@ -6,6 +6,10 @@ import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
 import { PageFeedback } from '@/components/feedback/PageFeedback';
 import { useRouter } from 'next/navigation';
 import { FileDropzone } from '@/components/FileDropzone';
+import {
+  CounterWithPrevious,
+  PreviousReadingBanner,
+} from '@/components/reading/CounterWithPrevious';
 import { Modal, ModalCloseButton, ModalSubmitButton } from '@/components/Modal';
 import { api, ApiError } from '@/lib/api';
 import { currentMois, formatDate } from '@/lib/format';
@@ -28,8 +32,7 @@ const COUNTER_STEPS = [
   { key: 'c113', label: '113 — Noir petit' },
   { key: 'c122', label: '122 — Couleur grand' },
   { key: 'c123', label: '123 — Couleur petit' },
-  { key: 'c301', label: '301 — Contrôle noir' },
-  { key: 'c501', label: '501 — Total lecture' },
+  { key: 'c501', label: '501 — Total scan' },
   { key: 'scanNoir', label: 'Scan noir' },
   { key: 'scanCouleur', label: 'Scan couleur' },
   { key: 'envoi', label: 'Envoi' },
@@ -51,7 +54,6 @@ const emptyForm = () => ({
   c113: '',
   c122: '',
   c123: '',
-  c301: '',
   c501: '',
   scanNoir: '',
   scanCouleur: '',
@@ -84,7 +86,6 @@ function parseCsv(text: string) {
       c113: num(idx('c113') >= 0 ? idx('c113') : 2),
       c122: num(idx('c122') >= 0 ? idx('c122') : 3),
       c123: num(idx('c123') >= 0 ? idx('c123') : 4),
-      c301: num(idx('c301')),
       c501: num(idx('c501')),
       scanNoir: num(idx('scan')),
       scanCouleur: num(idx('scancouleur') >= 0 ? idx('scancouleur') : idx('scan_couleur')),
@@ -213,7 +214,6 @@ export default function RelevesPage() {
         c113: Number(form.c113 || 0),
         c122: Number(form.c122 || 0),
         c123: Number(form.c123 || 0),
-        c301: form.c301 === '' ? undefined : Number(form.c301),
         c501: form.c501 === '' ? undefined : Number(form.c501),
         scanNoir: Number(form.scanNoir || 0),
         scanCouleur: Number(form.scanCouleur || 0),
@@ -323,7 +323,8 @@ export default function RelevesPage() {
         if (key === 'totalCouleur') return row.totalCouleur;
         if (key === 'deltaN') return row.copiesNoirFacturer;
         if (key === 'deltaC') return row.copiesCouleurFacturer;
-        if (key === 'ecart') return row.ecartControle ?? -1;
+        if (key === 'c501') return row.c501 ?? -1;
+        if (key === 'reportN') return row.quotaNoirReport ?? -1;
         if (key === 'statut') return row.statut;
         return '';
       }),
@@ -365,8 +366,8 @@ export default function RelevesPage() {
         if (key === 'code') return row.code;
         if (key === 'imprimante') return row.imprimante.code;
         if (key === 'totalNoir') return row.totalNoir;
-        if (key === 'c301') return row.c301 ?? -1;
-        if (key === 'ecart') return row.ecartControle ?? -1;
+        if (key === 'c501') return row.c501 ?? -1;
+        if (key === 'copiesCouleurBrutes') return row.copiesCouleurBrutes ?? -1;
         if (key === 'statut') return row.statut;
         return '';
       }),
@@ -548,32 +549,19 @@ export default function RelevesPage() {
             </div>
           </div>
 
-          {previous ? (
-            <div className="panel" style={{ marginBottom: '0.85rem', padding: '0.85rem' }}>
-              <h2 style={{ marginBottom: '0.35rem' }}>Ancien relevé {previous.code}</h2>
-              <p style={{ margin: 0, fontSize: '0.88rem', color: 'var(--ink-soft)' }}>
-                {previous.moisFacture} · N {previous.totalNoir} · C {previous.totalCouleur} · ΔN {previous.copiesNoirFacturer}
-              </p>
-            </div>
-          ) : form.imprimanteId ? (
-            <p className="empty-state" style={{ padding: '0.5rem 0' }}>Premier relevé (base initiale)</p>
+          {form.imprimanteId ? (
+            <PreviousReadingBanner previous={previous} moisFacture={form.moisFacture} />
           ) : null}
 
           {COUNTER_STEPS.map((step) => (
             <div className="modal-form-row" key={step.key}>
               <label>{step.label}</label>
               <div className="modal-field">
-                <input
-                  className="modal-input"
-                  type="number"
-                  min={0}
-                  placeholder={
-                    previous && step.key in previous
-                      ? `Ancien: ${String((previous as Record<string, unknown>)[step.key] ?? '—')}`
-                      : undefined
-                  }
+                <CounterWithPrevious
+                  previous={previous}
+                  counterKey={step.key}
                   value={form[step.key]}
-                  onChange={(e) => setField(step.key, e.target.value)}
+                  onChange={(v) => setField(step.key, v)}
                 />
               </div>
             </div>
@@ -630,7 +618,7 @@ export default function RelevesPage() {
         open={importOpen}
         eyebrow="IMPORT"
         title="Import CSV relevés"
-        subtitle="Colonnes : code;c112;c113;c122;c123;c301;…"
+        subtitle="Colonnes : code;c112;c113;c122;c123;c501;…"
         onClose={() => setImportOpen(false)}
         footer={
           <>
@@ -648,7 +636,7 @@ export default function RelevesPage() {
               <textarea
                 className="modal-textarea"
                 rows={10}
-                placeholder={'code;c112;c113;c122;c123;c301\nIMP-0001;1200;600;250;150;1800'}
+                placeholder={'code;c112;c113;c122;c123;c501\nIMP-0001;1200;600;250;150;800'}
                 value={importText}
                 onChange={(e) => setImportText(e.target.value)}
               />
@@ -738,7 +726,7 @@ export default function RelevesPage() {
                   <SortTh label="Inclus N" sortKey="deltaN" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} align="right" />
                   <SortTh label="Fact. N" sortKey="deltaN" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} align="right" />
                   <SortTh label="Fact. C" sortKey="deltaC" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} align="right" />
-                  <SortTh label="Report N" sortKey="ecart" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} align="right" />
+                  <SortTh label="Report N" sortKey="reportN" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} align="right" />
                   <SortTh label="Statut" sortKey="statut" activeKey={listeSort.sortKey} direction={listeSort.sortDir} onSort={listeSort.toggle} />
                 </tr>
               </thead>
@@ -881,7 +869,7 @@ export default function RelevesPage() {
             <h2>File de contrôle</h2>
             <p>
               {control.resume.total} relevé(s) · {control.resume.aTraiter ?? 0} à traiter ·{' '}
-              {control.resume.anomalies} anomalie(s) · {control.resume.ecartsNonNuls} écart(s) 301 ·{' '}
+              {control.resume.anomalies} anomalie(s) · {control.resume.alertesDelta ?? 0} Δ haut ·{' '}
               {control.resume.alertesDelta ?? 0} Δ haut · {control.resume.valides ?? 0} validé(s)
             </p>
           </div>
@@ -892,8 +880,8 @@ export default function RelevesPage() {
                   <SortTh label="Code" sortKey="code" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} />
                   <SortTh label="Copieur" sortKey="imprimante" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} />
                   <SortTh label="ΔN brut/fact." sortKey="totalNoir" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} align="right" />
-                  <SortTh label="301" sortKey="c301" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} align="right" />
-                  <SortTh label="Écart" sortKey="ecart" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} align="right" />
+                  <SortTh label="501" sortKey="c501" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} align="right" />
+                  <SortTh label="ΔC brut/fact." sortKey="copiesCouleurBrutes" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} align="right" />
                   <SortTh label="Statut" sortKey="statut" activeKey={controleSort.sortKey} direction={controleSort.sortDir} onSort={controleSort.toggle} />
                   <th className="col-actions">Actions</th>
                 </tr>
@@ -906,11 +894,9 @@ export default function RelevesPage() {
                     <td data-align="right">
                       {l.copiesNoirBrutes ?? '—'}/{l.copiesNoirFacturer ?? '—'}
                     </td>
-                    <td data-align="right">{l.c301 ?? '—'}</td>
+                    <td data-align="right">{l.c501 ?? '—'}</td>
                     <td data-align="right">
-                      <span className={l.ecartOk ? 'badge badge-ok' : 'badge badge-danger'}>
-                        {l.ecartControle ?? '—'}
-                      </span>
+                      {l.copiesCouleurBrutes ?? '—'}/{l.copiesCouleurFacturer ?? '—'}
                     </td>
                     <td><span className={statutBadge(l.statut)}>{l.statut}</span></td>
                     <td className="col-actions">

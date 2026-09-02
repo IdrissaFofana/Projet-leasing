@@ -79,6 +79,7 @@ enum StatutReleve {
 
 enum ObservationReleve {
   RAS
+  PRELEVEMENT_MENSUEL
   RESET_COMPTEUR
   MACHINE_REMPLACEE
   RELEVE_ESTIME
@@ -327,6 +328,7 @@ model Imprimante {
   affectations  Affectation[]
   releves       ReleveCompteur[]
   maintenances  Maintenance[]
+  maintenanceLinks MaintenanceImprimante[]
   lignesSaisie  LigneSaisieMensuelle[]
   lignesFacture FactureLigne[]
 
@@ -453,9 +455,8 @@ model ReleveCompteur {
   c122 Int @default(0) // Couleur grand format
   c123 Int @default(0) // Couleur petit format
 
-  // Controles rapport
-  c501 Int? // Total lecture
-  c301 Int? // Total impression (controle noir)
+  // Compteur scan machine (Δ ajouté aux feuilles couleur)
+  c501 Int? // Total scan
 
   // Scans / envois
   scanNoir    Int @default(0)
@@ -494,9 +495,7 @@ model ReleveCompteur {
   scansNoirFacturer     Int                @default(0)
   scansCouleurFacturer  Int                @default(0)
   envoisFacturer        Int                @default(0)
-  ecartControle         Int? // 301 - totalNoir
   alerteDeltaHaut       Boolean            @default(false)
-  alerteEcart301        Boolean            @default(false)
   statut                StatutReleve       @default(BASE_INITIALE)
   observationMotif      ObservationReleve?
   observations          String?
@@ -539,14 +538,21 @@ model ReleveAudit {
 // CAMPAGNE SAISIE MENSUELLE (brouillon avant archivage)
 // -----------------------------------------------------------------------------
 
+enum PorteeCampagne {
+  ALL
+  SELECTION
+}
+
 model CampagneSaisie {
-  id          String   @id @default(cuid())
-  mois        String   @unique // YYYY-MM
-  dateReleve  DateTime @db.Date
-  heureReleve String?  @default("09:00")
-  cloturee    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id          String         @id @default(cuid())
+  mois        String         @unique // YYYY-MM
+  dateReleve  DateTime       @db.Date
+  heureReleve String?        @default("09:00")
+  /// ALL = parc actif complet ; SELECTION = sous-ensemble choisi à la création
+  portee      PorteeCampagne @default(ALL)
+  cloturee    Boolean        @default(false)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   lignes LigneSaisieMensuelle[]
 }
@@ -563,7 +569,6 @@ model LigneSaisieMensuelle {
   c122        Int?
   c123        Int?
   c501        Int?
-  c301        Int?
   scanNoir    Int?
   scanCouleur Int?
   envoi       Int?
@@ -572,6 +577,11 @@ model LigneSaisieMensuelle {
   observationMotif    ObservationReleve?
   observations        String?
   archiveVersReleveId String?
+
+  /// Rapport compteur (PDF / image) — transféré au relevé à l'archivage
+  rapportPath String?
+  rapportNom  String?
+  rapportMime String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -591,6 +601,8 @@ model Maintenance {
   imprimanteId         String
   imprimante           Imprimante      @relation(fields: [imprimanteId], references: [id])
   type                 TypeMaintenance
+  /// Tâches réalisées (une intervention peut en cumuler plusieurs)
+  taches               TypeMaintenance[] @default([])
   technicienId         String?
   technicien           Agent?          @relation(fields: [technicienId], references: [id])
   /// Utilisateur chargé de l'assistance (reçoit la notif)
@@ -600,11 +612,14 @@ model Maintenance {
   piecesConsommables   String?
   prochaineMaintenance DateTime?       @db.Date
   observations         String?
-  /// Mois civil de l'assistance (YYYY-MM) — quota 3 / imprimante / mois
+  /// Mois civil de l'assistance (YYYY-MM) — quota 1 / imprimante / mois (hors panne)
   moisAssistance       String?
+  /// Panne signalée : assistance hors quota mensuel (plusieurs possibles)
+  horsQuota            Boolean         @default(false)
   /// Lien optionnel vers le relevé qui a généré l'assistance
   releveId             String?         @unique
   releve               ReleveCompteur? @relation(fields: [releveId], references: [id], onDelete: SetNull)
+  imprimantes          MaintenanceImprimante[]
   /// Rapport d'assistance (PDF / image)
   rapportPath          String?
   rapportNom           String?
@@ -617,6 +632,17 @@ model Maintenance {
   @@index([moisAssistance])
   @@index([type, moisAssistance])
   @@index([assigneeUserId])
+}
+
+model MaintenanceImprimante {
+  id            String      @id @default(cuid())
+  maintenanceId String
+  maintenance   Maintenance @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  imprimanteId  String
+  imprimante    Imprimante  @relation(fields: [imprimanteId], references: [id])
+
+  @@unique([maintenanceId, imprimanteId])
+  @@index([imprimanteId])
 }
 
 // -----------------------------------------------------------------------------
