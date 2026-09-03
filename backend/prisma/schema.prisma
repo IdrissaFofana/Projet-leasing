@@ -322,6 +322,17 @@ model Imprimante {
   dateInstallation     DateTime?        @db.Date
   prochaineMaintenance DateTime?        @db.Date
   observations         String?
+  /// Compteurs relevés à la pose (point de départ, hors facturation)
+  compteursInitiauxSaisis Boolean       @default(false)
+  dateCompteursInitiaux   DateTime?     @db.Date
+  c112Init                Int           @default(0)
+  c113Init                Int           @default(0)
+  c122Init                Int           @default(0)
+  c123Init                Int           @default(0)
+  c501Init                Int?
+  scanNoirInit            Int           @default(0)
+  scanCouleurInit         Int           @default(0)
+  envoiInit               Int           @default(0)
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
 

@@ -8,6 +8,33 @@ API NestJS + Prisma + PostgreSQL pour le suivi parc / stock / relevés / factura
 - PostgreSQL 14+
 - Fichier `.env` (voir `.env.example`)
 
+## Rapports PDF (serveur Ubuntu)
+
+Les rapports HTML→PDF utilisent Puppeteer/Chromium. En local Windows ça marche souvent tout seul ; en prod Linux, Chrome n’est souvent **pas** téléchargé (ou les libs manquent).
+
+Sur le serveur :
+
+```bash
+sudo apt-get update
+sudo apt-get install -y chromium-browser \
+  fonts-liberation libnss3 libatk-bridge2.0-0 libdrm2 \
+  libxkbcommon0 libgbm1 libasound2t64 libxshmfence1
+```
+
+Si le paquet s’appelle `chromium` plutôt que `chromium-browser` :
+
+```bash
+sudo apt-get install -y chromium
+```
+
+Puis dans `.env` du backend (chemin réel via `which chromium` ou `which chromium-browser`) :
+
+```env
+PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+```
+
+Redémarrer l’API ensuite. Sans ça, Puppeteer échoue et l’endpoint rapports répond 500.
+
 ## Installation
 
 ```bash

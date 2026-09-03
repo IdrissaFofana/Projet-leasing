@@ -3,6 +3,7 @@ import { StatutImprimante } from '@prisma/client';
 import {
   IsDateString,
   IsEnum,
+  IsBoolean,
   IsOptional,
   IsString,
   MinLength,
@@ -68,6 +69,45 @@ export class CreatePrinterDto {
   @IsOptional()
   @IsString()
   observations?: string;
+
+  @ApiPropertyOptional({
+    description: 'Saisir des compteurs initiaux à la pose (point de départ avant le 1er relevé facturable).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  compteursInitiauxSaisis?: boolean;
+
+  @ApiPropertyOptional({ example: '2026-06-15' })
+  @IsOptional()
+  @IsDateString()
+  dateCompteursInitiaux?: string;
+
+  @ApiPropertyOptional({ example: 1000 })
+  @IsOptional()
+  c112Init?: number;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  c113Init?: number;
+  @ApiPropertyOptional({ example: 200 })
+  @IsOptional()
+  c122Init?: number;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  c123Init?: number;
+
+  @ApiPropertyOptional({ example: 500, nullable: true })
+  @IsOptional()
+  c501Init?: number | null;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  scanNoirInit?: number;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  scanCouleurInit?: number;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  envoiInit?: number;
 }
 
 export class UpdatePrinterDto {
@@ -122,6 +162,43 @@ export class UpdatePrinterDto {
   @IsOptional()
   @IsString()
   observations?: string | null;
+
+  @ApiPropertyOptional({ description: 'Active / désactive la saisie des compteurs initiaux.' })
+  @IsOptional()
+  @IsBoolean()
+  compteursInitiauxSaisis?: boolean;
+
+  @ApiPropertyOptional({ example: '2026-06-15' })
+  @IsOptional()
+  @IsDateString()
+  dateCompteursInitiaux?: string | null;
+
+  @ApiPropertyOptional({ example: 1000 })
+  @IsOptional()
+  c112Init?: number;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  c113Init?: number;
+  @ApiPropertyOptional({ example: 200 })
+  @IsOptional()
+  c122Init?: number;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  c123Init?: number;
+
+  @ApiPropertyOptional({ example: 500, nullable: true })
+  @IsOptional()
+  c501Init?: number | null;
+
+  @ApiPropertyOptional({ example: 10 })
+  @IsOptional()
+  scanNoirInit?: number;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  scanCouleurInit?: number;
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  envoiInit?: number;
 }
 
 export class PrinterQueryDto {

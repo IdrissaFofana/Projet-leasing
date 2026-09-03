@@ -160,6 +160,17 @@ export type Imprimante = {
   marqueId: string | null;
   fournisseurId: string | null;
   serviceId: string | null;
+  /// Compteurs relevés à la pose (point de départ avant le 1er relevé facturable)
+  compteursInitiauxSaisis?: boolean;
+  dateCompteursInitiaux?: string | null;
+  c112Init?: number;
+  c113Init?: number;
+  c122Init?: number;
+  c123Init?: number;
+  c501Init?: number | null;
+  scanNoirInit?: number;
+  scanCouleurInit?: number;
+  envoiInit?: number;
   marque?: NamedRef | null;
   fournisseur?: NamedRef | null;
   service?: NamedRef | null;

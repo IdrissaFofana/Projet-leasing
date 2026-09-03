@@ -1,14 +1,35 @@
+import { InternalServerErrorException, Logger } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
 import puppeteer from 'puppeteer';
 import { PDFDocument } from 'pdf-lib';
 
-export const IVOPREST_TEMPLATE_DIR = path.join(
-  process.cwd(),
-  'assets',
-  'templates',
-  'ivoprest-reports',
-);
+const reportLogger = new Logger('IvoprestReports');
+
+function resolveTemplateDir() {
+  const candidates = [
+    path.join(process.cwd(), 'assets', 'templates', 'ivoprest-reports'),
+    path.join(__dirname, '..', '..', '..', 'assets', 'templates', 'ivoprest-reports'),
+    path.join(__dirname, '..', '..', '..', '..', 'assets', 'templates', 'ivoprest-reports'),
+  ];
+  return candidates.find((dir) => fs.existsSync(path.join(dir, 'styles.css'))) ?? candidates[0];
+}
+
+export const IVOPREST_TEMPLATE_DIR = resolveTemplateDir();
+
+function resolveChromeExecutable(): string | undefined {
+  const fromEnv = process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH;
+  if (fromEnv && fs.existsSync(fromEnv)) return fromEnv;
+
+  const linuxBins = [
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/google-chrome',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/chromium',
+    '/snap/bin/chromium',
+  ];
+  return linuxBins.find((bin) => fs.existsSync(bin));
+}
 
 export function esc(s: string | number | null | undefined) {
   return String(s ?? '')
@@ -187,19 +208,46 @@ export function wrapIvoprestDocument(title: string, sectionsHtml: string) {
 }
 
 export async function htmlToPdfBuffer(html: string): Promise<Buffer> {
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
-  });
+  const executablePath = resolveChromeExecutable();
+  let browser;
+  try {
+    browser = await puppeteer.launch({
+      headless: true,
+      executablePath,
+      timeout: 60_000,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-software-rasterizer',
+        '--font-render-hinting=none',
+      ],
+    });
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    reportLogger.error(`Puppeteer launch failed: ${detail}`);
+    throw new InternalServerErrorException(
+      'Génération PDF impossible : Chrome/Chromium introuvable ou incomplet sur le serveur. ' +
+        'Installez chromium (apt) ou définissez PUPPETEER_EXECUTABLE_PATH, puis relancez l’API.',
+    );
+  }
+
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load' });
+    await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 60_000 });
     const pdf = await page.pdf({
       format: 'A4',
       printBackground: true,
       margin: { top: '0', right: '0', bottom: '0', left: '0' },
     });
     return Buffer.from(pdf);
+  } catch (err) {
+    const detail = err instanceof Error ? err.message : String(err);
+    reportLogger.error(`PDF render failed: ${detail}`);
+    throw new InternalServerErrorException(
+      'Génération PDF impossible : échec du rendu Chromium. Vérifiez les libs graphiques Linux et /dev/shm.',
+    );
   } finally {
     await browser.close();
   }

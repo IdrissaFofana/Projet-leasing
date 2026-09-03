@@ -254,6 +254,20 @@ export function ImprimanteDetailModal({
         prochaineMaintenance: draft.prochaineMaintenance
           ? toInputDate(draft.prochaineMaintenance)
           : null,
+        compteursInitiauxSaisis: draft.compteursInitiauxSaisis ?? false,
+        dateCompteursInitiaux: draft.compteursInitiauxSaisis
+          ? draft.dateCompteursInitiaux
+            ? toInputDate(draft.dateCompteursInitiaux)
+            : null
+          : undefined,
+        c112Init: draft.compteursInitiauxSaisis ? draft.c112Init ?? 0 : undefined,
+        c113Init: draft.compteursInitiauxSaisis ? draft.c113Init ?? 0 : undefined,
+        c122Init: draft.compteursInitiauxSaisis ? draft.c122Init ?? 0 : undefined,
+        c123Init: draft.compteursInitiauxSaisis ? draft.c123Init ?? 0 : undefined,
+        c501Init: draft.compteursInitiauxSaisis ? draft.c501Init ?? null : undefined,
+        scanNoirInit: draft.compteursInitiauxSaisis ? draft.scanNoirInit ?? 0 : undefined,
+        scanCouleurInit: draft.compteursInitiauxSaisis ? draft.scanCouleurInit ?? 0 : undefined,
+        envoiInit: draft.compteursInitiauxSaisis ? draft.envoiInit ?? 0 : undefined,
         observations: draft.observations,
       });
       setRow(updated);
@@ -485,6 +499,134 @@ export function ImprimanteDetailModal({
                       <input className="modal-input" type="date" value={toInputDate(draft.dateInstallation)} onChange={(e) => setField('dateInstallation', e.target.value || null)} />
                     </div>
                   </div>
+                  <div className="modal-form-row">
+                    <label>Compteurs initiaux (pose)</label>
+                    <div className="modal-field">
+                      <label className="checkbox-row" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={draft.compteursInitiauxSaisis ?? false}
+                          onChange={(e) => setField('compteursInitiauxSaisis', e.target.checked)}
+                        />
+                        <span>Utiliser ce point de départ pour le 1er relevé</span>
+                      </label>
+                    </div>
+                  </div>
+                  {draft.compteursInitiauxSaisis ? (
+                    <>
+                      <div className="modal-form-row">
+                        <label>Date compteurs initiaux</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="date"
+                            value={toInputDate(draft.dateCompteursInitiaux)}
+                            onChange={(e) => setField('dateCompteursInitiaux', e.target.value || null)}
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-form-row">
+                        <label>112 (Noir grand)</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="number"
+                            min={0}
+                            value={draft.c112Init ?? 0}
+                            onChange={(e) => setField('c112Init', Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-form-row">
+                        <label>113 (Noir petit)</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="number"
+                            min={0}
+                            value={draft.c113Init ?? 0}
+                            onChange={(e) => setField('c113Init', Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-form-row">
+                        <label>122 (Couleur grand)</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="number"
+                            min={0}
+                            value={draft.c122Init ?? 0}
+                            onChange={(e) => setField('c122Init', Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-form-row">
+                        <label>123 (Couleur petit)</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="number"
+                            min={0}
+                            value={draft.c123Init ?? 0}
+                            onChange={(e) => setField('c123Init', Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-form-row">
+                        <label>501 (Scan total)</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="number"
+                            min={0}
+                            value={draft.c501Init ?? ''}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setField('c501Init', v === '' ? null : Number(v));
+                            }}
+                            placeholder="Optionnel"
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-form-row">
+                        <label>Scan noir initial</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="number"
+                            min={0}
+                            value={draft.scanNoirInit ?? 0}
+                            onChange={(e) => setField('scanNoirInit', Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-form-row">
+                        <label>Scan couleur initial</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="number"
+                            min={0}
+                            value={draft.scanCouleurInit ?? 0}
+                            onChange={(e) => setField('scanCouleurInit', Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                      <div className="modal-form-row">
+                        <label>Envoi initial</label>
+                        <div className="modal-field">
+                          <input
+                            className="modal-input"
+                            type="number"
+                            min={0}
+                            value={draft.envoiInit ?? 0}
+                            onChange={(e) => setField('envoiInit', Number(e.target.value))}
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
                   <div className="modal-form-row">
                     <label>Prochaine maintenance</label>
                     <div className="modal-field">

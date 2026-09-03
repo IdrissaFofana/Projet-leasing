@@ -24,7 +24,49 @@ export type PreviousSnapshot = {
   envoi: number;
   quotaNoirReport?: number | null;
   quotaCouleurReport?: number | null;
+  /** Snapshot issu des compteurs de pose (pas un relevé mensuel). */
+  fromPose?: boolean;
 };
+
+export type PrinterPoseCounters = {
+  compteursInitiauxSaisis: boolean;
+  dateCompteursInitiaux?: Date | string | null;
+  c112Init: number;
+  c113Init: number;
+  c122Init: number;
+  c123Init: number;
+  c501Init?: number | null;
+  scanNoirInit: number;
+  scanCouleurInit: number;
+  envoiInit: number;
+};
+
+export function printerHasPoseCounters(
+  printer: Pick<PrinterPoseCounters, 'compteursInitiauxSaisis'> | null | undefined,
+) {
+  return !!printer?.compteursInitiauxSaisis;
+}
+
+/** Point de départ à la pose : Δ calculé au 1er relevé, quota du mois = quota de base (pas de report). */
+export function poseToPreviousSnapshot(
+  printer: PrinterPoseCounters,
+): PreviousSnapshot {
+  return {
+    totalNoir: printer.c112Init + printer.c113Init,
+    totalCouleur: printer.c122Init + printer.c123Init,
+    c112: printer.c112Init,
+    c113: printer.c113Init,
+    c122: printer.c122Init,
+    c123: printer.c123Init,
+    c501: printer.c501Init ?? null,
+    scanNoir: printer.scanNoirInit,
+    scanCouleur: printer.scanCouleurInit,
+    envoi: printer.envoiInit,
+    quotaNoirReport: 0,
+    quotaCouleurReport: 0,
+    fromPose: true,
+  };
+}
 
 /** Seuils métier pour alertes (Δ haut). */
 export const RELEVE_THRESHOLDS = {

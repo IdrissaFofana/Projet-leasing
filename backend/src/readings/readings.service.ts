@@ -18,7 +18,12 @@ import {
   TypeMaintenance,
 } from '@prisma/client';
 import * as fs from 'fs';
-import { computeReleve } from '../common/domain/calculs';
+import {
+  computeReleve,
+  poseToPreviousSnapshot,
+  printerHasPoseCounters,
+  type PreviousSnapshot,
+} from '../common/domain/calculs';
 import { syncCampagneLigneFromReleve } from '../common/domain/campaign-releve-sync';
 import {
   absoluteUploadPath,
@@ -126,7 +131,33 @@ export class ReadingsService {
     await this.ensurePrinter(query.imprimanteId);
     const date = query.dateReleve ?? `${query.moisFacture}-28`;
     const prev = await this.findPrevious(query.imprimanteId, query.moisFacture, date);
-    return prev ? this.formatPreviousSnapshot(prev) : null;
+    if (!prev) return null;
+
+    // Compteurs initiaux : on fabrique un "PreviousReading" pour alimenter l'UI.
+    if ('fromPose' in prev && prev.fromPose) {
+      return {
+        id: `pose-${query.imprimanteId}`,
+        code: 'BASE_POSE',
+        moisFacture: query.moisFacture,
+        dateReleve: date,
+        c112: prev.c112,
+        c113: prev.c113,
+        c122: prev.c122,
+        c123: prev.c123,
+        c501: prev.c501 ?? null,
+        scanNoir: prev.scanNoir,
+        scanCouleur: prev.scanCouleur,
+        envoi: prev.envoi,
+        totalNoir: prev.totalNoir,
+        totalCouleur: prev.totalCouleur,
+        copiesNoirFacturer: 0,
+        copiesCouleurFacturer: 0,
+        quotaNoirReport: prev.quotaNoirReport ?? 0,
+        quotaCouleurReport: prev.quotaCouleurReport ?? 0,
+      };
+    }
+
+    return this.formatPreviousSnapshot(prev as ReleveCompteur);
   }
 
   /** Dernier relevé officiel par copieur (batch, pour campagnes). */
@@ -726,9 +757,11 @@ export class ReadingsService {
         mois,
         debut: debut
           ? {
-              code: debut.code,
-              moisFacture: debut.moisFacture,
-              dateReleve: debut.dateReleve,
+              code: 'code' in debut ? debut.code : 'BASE_POSE',
+              moisFacture: 'moisFacture' in debut ? debut.moisFacture : mois,
+              dateReleve: 'dateReleve' in debut
+                ? debut.dateReleve
+                : `${mois}-01`,
               totalNoir: debut.totalNoir,
               totalCouleur: debut.totalCouleur,
               c112: debut.c112,
@@ -889,7 +922,7 @@ export class ReadingsService {
 
   private compute(
     counters: CounterSnapshot,
-    previous: ReleveCompteur | null,
+    previous: PreviousSnapshot | null,
     motif?: ObservationReleve | null,
     avgs?: { avgDeltaNoir: number | null; avgDeltaCouleur: number | null },
   ) {
@@ -944,7 +977,7 @@ export class ReadingsService {
     dateReleve: string,
     excludeId?: string,
   ) {
-    return this.prisma.releveCompteur.findFirst({
+    const prev = await this.prisma.releveCompteur.findFirst({
       where: {
         imprimanteId,
         id: excludeId ? { not: excludeId } : undefined,
@@ -959,6 +992,37 @@ export class ReadingsService {
       },
       orderBy: [{ moisFacture: 'desc' }, { dateReleve: 'desc' }, { createdAt: 'desc' }],
     });
+
+    // Si un relevé précédent existe (OK/CTRL/VALIDE/ANOMALIE), on l’utilise.
+    // Sinon (ou si c’est un BASE_INITIALE), on tente le fallback “pose”.
+    if (prev && prev.statut !== StatutReleve.BASE_INITIALE) return prev;
+
+    // Fallback : compteurs initiaux (pose) si saisis, pour le 1er relevé facturable.
+    const pose = await this.prisma.imprimante.findUnique({
+      where: { id: imprimanteId },
+      select: {
+        compteursInitiauxSaisis: true,
+        dateCompteursInitiaux: true,
+        c112Init: true,
+        c113Init: true,
+        c122Init: true,
+        c123Init: true,
+        c501Init: true,
+        scanNoirInit: true,
+        scanCouleurInit: true,
+        envoiInit: true,
+      },
+    });
+
+    if (!pose || !printerHasPoseCounters(pose)) return prev ?? null;
+
+    if (pose.dateCompteursInitiaux) {
+      const poseDate = new Date(pose.dateCompteursInitiaux);
+      const releveDate = new Date(dateReleve);
+      if (releveDate < poseDate) return prev ?? null;
+    }
+
+    return poseToPreviousSnapshot(pose);
   }
 
   private normalizeCounters(dto: Partial<CounterSnapshot>): CounterSnapshot {

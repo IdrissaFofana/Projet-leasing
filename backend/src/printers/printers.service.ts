@@ -88,6 +88,16 @@ export class PrintersService {
             ? new Date(dto.prochaineMaintenance)
             : null,
           observations: dto.observations,
+          compteursInitiauxSaisis: dto.compteursInitiauxSaisis ?? false,
+          dateCompteursInitiaux: dto.dateCompteursInitiaux ? new Date(dto.dateCompteursInitiaux) : null,
+          c112Init: dto.c112Init ?? undefined,
+          c113Init: dto.c113Init ?? undefined,
+          c122Init: dto.c122Init ?? undefined,
+          c123Init: dto.c123Init ?? undefined,
+          c501Init: dto.c501Init ?? undefined,
+          scanNoirInit: dto.scanNoirInit ?? undefined,
+          scanCouleurInit: dto.scanCouleurInit ?? undefined,
+          envoiInit: dto.envoiInit ?? undefined,
         },
         include: printerInclude,
       });
@@ -127,6 +137,23 @@ export class PrintersService {
               ? new Date(dto.prochaineMaintenance)
               : null,
         observations: dto.observations === undefined ? undefined : dto.observations,
+        compteursInitiauxSaisis:
+          dto.compteursInitiauxSaisis === undefined ? undefined : dto.compteursInitiauxSaisis,
+        dateCompteursInitiaux:
+          dto.dateCompteursInitiaux === undefined
+            ? undefined
+            : dto.dateCompteursInitiaux
+              ? new Date(dto.dateCompteursInitiaux)
+              : null,
+        c112Init: dto.c112Init === undefined ? undefined : dto.c112Init,
+        c113Init: dto.c113Init === undefined ? undefined : dto.c113Init,
+        c122Init: dto.c122Init === undefined ? undefined : dto.c122Init,
+        c123Init: dto.c123Init === undefined ? undefined : dto.c123Init,
+        c501Init: dto.c501Init === undefined ? undefined : dto.c501Init,
+        scanNoirInit: dto.scanNoirInit === undefined ? undefined : dto.scanNoirInit,
+        scanCouleurInit:
+          dto.scanCouleurInit === undefined ? undefined : dto.scanCouleurInit,
+        envoiInit: dto.envoiInit === undefined ? undefined : dto.envoiInit,
       },
       include: printerInclude,
     });
