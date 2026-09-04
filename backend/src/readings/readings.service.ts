@@ -510,34 +510,73 @@ export class ReadingsService {
         : StatutReleve.BASE_INITIALE;
 
     const before = this.auditSnapshot(existing);
-    const row = await this.prisma.releveCompteur.update({
-      where: { id },
-      data: {
-        dateReleve: dto.dateReleve ? new Date(dto.dateReleve) : undefined,
-        heureReleve:
-          dto.heureReleve === undefined ? undefined : this.parseHeure(dto.heureReleve),
-        ...counters,
-        ...computed,
-        statut,
-        observationMotif: dto.observationMotif === undefined ? undefined : dto.observationMotif,
-        observations: dto.observations === undefined ? undefined : dto.observations,
-        controleAt: null,
-        controleParId: null,
-        valideAt: null,
-        valideParId: null,
-      },
-      include: readingInclude,
-    });
-    await this.prisma.releveAudit.create({
-      data: {
-        releveId: id,
-        userId: userId ?? null,
-        action: 'UPDATE',
-        beforeJson: JSON.stringify(before),
-        afterJson: JSON.stringify(this.auditSnapshot(row)),
-      },
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.releveCompteur.update({
+        where: { id },
+        data: {
+          dateReleve: dto.dateReleve ? new Date(dto.dateReleve) : undefined,
+          heureReleve:
+            dto.heureReleve === undefined ? undefined : this.parseHeure(dto.heureReleve),
+          ...counters,
+          ...computed,
+          statut,
+          observationMotif: dto.observationMotif === undefined ? undefined : dto.observationMotif,
+          observations: dto.observations === undefined ? undefined : dto.observations,
+          controleAt: null,
+          controleParId: null,
+          valideAt: null,
+          valideParId: null,
+        },
+        include: readingInclude,
+      });
+      await tx.releveAudit.create({
+        data: {
+          releveId: id,
+          userId: userId ?? null,
+          action: 'UPDATE',
+          beforeJson: JSON.stringify(before),
+          afterJson: JSON.stringify(this.auditSnapshot(updated)),
+        },
+      });
+      await syncCampagneLigneFromReleve(tx, updated);
+      return updated;
     });
     return row;
+  }
+
+  /**
+   * Mise à jour depuis une campagne ouverte : déverrouille VALIDE si besoin,
+   * puis applique la correction (et synchronise la ligne campagne).
+   */
+  async updateFromCampaignCorrection(
+    id: string,
+    dto: UpdateReadingDto,
+    userId?: string,
+  ) {
+    const existing = await this.findOne(id);
+    await this.ensurePeriodeOuverte(existing.moisFacture);
+
+    if (existing.statut === StatutReleve.VALIDE) {
+      await this.prisma.releveCompteur.update({
+        where: { id },
+        data: {
+          statut: StatutReleve.OK,
+          valideAt: null,
+          valideParId: null,
+        },
+      });
+      await this.prisma.releveAudit.create({
+        data: {
+          releveId: id,
+          userId: userId ?? null,
+          action: 'UNLOCK_FOR_CORRECTION',
+          beforeJson: JSON.stringify({ statut: StatutReleve.VALIDE }),
+          afterJson: JSON.stringify({ statut: StatutReleve.OK }),
+        },
+      });
+    }
+
+    return this.update(id, dto, userId);
   }
 
   async acceptAnomaly(id: string, dto: AcceptAnomalyDto, userId?: string) {

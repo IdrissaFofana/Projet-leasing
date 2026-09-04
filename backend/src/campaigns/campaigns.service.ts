@@ -503,10 +503,52 @@ export class CampaignsService {
       },
     });
     if (!ligne) throw new NotFoundException('Ligne campagne introuvable');
+
+    // Ligne déjà archivée → corriger le relevé lié (sans devoir le supprimer).
     if (ligne.archiveVersReleveId) {
-      throw new BadRequestException(
-        'Ligne liée à un relevé — déliez-la pour corriger, puis ré-archivez',
-      );
+      const counters = {
+        c112: dto.c112 !== undefined ? dto.c112 : ligne.c112,
+        c113: dto.c113 !== undefined ? dto.c113 : ligne.c113,
+        c122: dto.c122 !== undefined ? dto.c122 : ligne.c122,
+        c123: dto.c123 !== undefined ? dto.c123 : ligne.c123,
+        c501: dto.c501 !== undefined ? dto.c501 : ligne.c501,
+        scanNoir: dto.scanNoir !== undefined ? dto.scanNoir : ligne.scanNoir,
+        scanCouleur: dto.scanCouleur !== undefined ? dto.scanCouleur : ligne.scanCouleur,
+        envoi: dto.envoi !== undefined ? dto.envoi : ligne.envoi,
+      };
+      if (
+        counters.c112 == null ||
+        counters.c113 == null ||
+        counters.c122 == null ||
+        counters.c123 == null
+      ) {
+        throw new BadRequestException(
+          'Compteurs 112–123 obligatoires pour corriger un relevé lié',
+        );
+      }
+      await this.readings.updateFromCampaignCorrection(ligne.archiveVersReleveId, {
+        c112: counters.c112,
+        c113: counters.c113,
+        c122: counters.c122,
+        c123: counters.c123,
+        c501: counters.c501 ?? undefined,
+        scanNoir: counters.scanNoir ?? undefined,
+        scanCouleur: counters.scanCouleur ?? undefined,
+        envoi: counters.envoi ?? undefined,
+        observationMotif:
+          dto.observationMotif !== undefined
+            ? dto.observationMotif ?? undefined
+            : ligne.observationMotif ?? undefined,
+        observations:
+          dto.observations !== undefined
+            ? dto.observations ?? undefined
+            : ligne.observations ?? undefined,
+        brouillon: false,
+      });
+      return this.prisma.ligneSaisieMensuelle.findUniqueOrThrow({
+        where: { id: ligne.id },
+        include: { imprimante: { include: { marque: true, service: true } } },
+      });
     }
 
     const merged = {

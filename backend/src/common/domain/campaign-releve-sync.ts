@@ -100,7 +100,7 @@ export async function maybeCloseCampagne(
   }
 }
 
-/** Relie la ligne campagne correspondante après création d'un relevé direct. */
+/** Relie / met à jour la ligne campagne correspondante après création ou modification d'un relevé. */
 export async function syncCampagneLigneFromReleve(
   tx: Prisma.TransactionClient,
   releve: ReleveCompteur,
@@ -108,7 +108,7 @@ export async function syncCampagneLigneFromReleve(
   const campagne = await tx.campagneSaisie.findUnique({
     where: { mois: releve.moisFacture },
   });
-  if (!campagne || campagne.cloturee) return;
+  if (!campagne) return;
 
   const ligne = await tx.ligneSaisieMensuelle.findUnique({
     where: {
@@ -119,14 +119,26 @@ export async function syncCampagneLigneFromReleve(
     },
   });
   if (!ligne) return;
-  if (ligne.archiveVersReleveId === releve.id) return;
+
+  // Ne pas écraser une ligne déjà liée à un autre relevé.
+  if (ligne.archiveVersReleveId && ligne.archiveVersReleveId !== releve.id) {
+    return;
+  }
+
+  // Campagne clôturée : on miroir seulement les compteurs si déjà liée ;
+  // on ne crée pas de nouveau lien ni on ne reclôture.
+  if (campagne.cloturee && !ligne.archiveVersReleveId) {
+    return;
+  }
 
   await tx.ligneSaisieMensuelle.update({
     where: { id: ligne.id },
     data: buildLigneUpdateFromReleve(releve),
   });
 
-  await maybeCloseCampagne(tx, campagne.id);
+  if (!campagne.cloturee) {
+    await maybeCloseCampagne(tx, campagne.id);
+  }
 }
 
 /** Copie le rapport d'une ligne campagne vers le relevé officiel (si le relevé n'en a pas). */

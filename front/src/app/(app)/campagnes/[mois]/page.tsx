@@ -79,7 +79,11 @@ export default function CampagneDetailPage() {
         observationMotif: ligne.observationMotif || null,
         observations: ligne.observations,
       });
-      setOk(`Ligne ${ligne.imprimante?.code} enregistrée (${ligne.statutLigne})`);
+      setOk(
+        ligne.archiveVersReleveId
+          ? `Relevé lié de ${ligne.imprimante?.code} mis à jour`
+          : `Ligne ${ligne.imprimante?.code} enregistrée`,
+      );
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Sauvegarde impossible');
@@ -132,7 +136,7 @@ export default function CampagneDetailPage() {
       !(await confirm({
         title: 'Ouvrir pour correction',
         message:
-          'Rouvrir la campagne pour corriger des valeurs, ajouter ou retirer des copieurs ? Les lignes déjà liées resteront liées jusqu’à ce que vous les déliez.',
+          'Rouvrir la campagne pour corriger les compteurs (y compris les lignes déjà liées au relevé), ajouter ou retirer des copieurs ?',
         confirmLabel: 'Ouvrir',
       }))
     ) {
@@ -143,7 +147,9 @@ export default function CampagneDetailPage() {
     setOk(null);
     try {
       await api.campaigns.reopen(mois);
-      setOk('Campagne ouverte pour correction — déliez une ligne pour la modifier, puis ré-archivez');
+      setOk(
+        'Campagne ouverte — modifiez les compteurs puis cliquez Sauver (le relevé lié est mis à jour). « Délier » ne sert que si vous voulez supprimer le relevé.',
+      );
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Réouverture impossible');
@@ -155,10 +161,10 @@ export default function CampagneDetailPage() {
   async function unlinkLigne(ligne: CampagneLigne) {
     if (
       !(await confirm({
-        title: 'Délier pour corriger',
-        message: `Supprimer le relevé lié de ${ligne.imprimante?.code ?? 'ce copieur'} et rendre la ligne éditable ? Vous pourrez corriger puis ré-archiver. Impossible si la facture du mois est clôturée.`,
+        title: 'Délier (supprimer le relevé)',
+        message: `Supprimer le relevé lié de ${ligne.imprimante?.code ?? 'ce copieur'} ? Utile seulement si vous voulez recommencer la saisie depuis zéro. Pour une simple correction de compteurs, éditez puis Sauver sans délier.`,
         danger: true,
-        confirmLabel: 'Délier',
+        confirmLabel: 'Supprimer le relevé',
       }))
     ) {
       return;
@@ -440,14 +446,14 @@ export default function CampagneDetailPage() {
         </p>
         {campagne.cloturee ? (
           <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.88rem', color: 'var(--danger, #c0392b)' }}>
-            Campagne clôturée. Cliquez « Ouvrir pour correction » pour ajouter/retirer un copieur ou délier une ligne
-            afin de corriger les compteurs, puis ré-archivez.
+            Campagne clôturée. Cliquez « Ouvrir pour correction » pour modifier les compteurs (même sur les lignes liées),
+            ajouter/retirer un copieur, puis enregistrez avec Sauver.
           </p>
         ) : null}
         <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.88rem' }}>
           Compteurs « anc. » = dernier relevé officiel connu par copieur (pas forcément le mois précédent).
           La saisie partielle reste possible en brouillon.
-          Une ligne liée doit être déliée avant modification.
+          Une ligne liée reste éditable tant que la campagne est ouverte : Sauver met à jour le relevé.
         </p>
       </div>
 
@@ -618,7 +624,7 @@ export default function CampagneDetailPage() {
                       previous={l.previous}
                       counterKey={k}
                       value={l[k]}
-                      disabled={!!l.archiveVersReleveId || campagne.cloturee}
+                      disabled={campagne.cloturee}
                       onChange={(v) => patchLigne(l.id, k, v)}
                     />
                   </td>
@@ -626,7 +632,7 @@ export default function CampagneDetailPage() {
                 <td className="campaign-entry-motif-col">
                   <select
                     className="select campaign-entry-motif"
-                    disabled={!!l.archiveVersReleveId || campagne.cloturee}
+                    disabled={campagne.cloturee}
                     value={l.observationMotif ?? ''}
                     onChange={(e) => patchLigne(l.id, 'observationMotif', e.target.value)}
                   >
@@ -684,13 +690,13 @@ export default function CampagneDetailPage() {
                         disabled={busy}
                         onClick={() => void unlinkLigne(l)}
                       >
-                        Délier
+                        Délier / supp. relevé
                       </button>
                     ) : null}
                     <button
                       type="button"
                       className="btn btn-soft btn-sm"
-                      disabled={busy || !!l.archiveVersReleveId || campagne.cloturee}
+                      disabled={busy || campagne.cloturee}
                       onClick={() => void saveLigne(l)}
                     >
                       Sauver
