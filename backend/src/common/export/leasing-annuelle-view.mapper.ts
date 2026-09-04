@@ -254,11 +254,7 @@ export function mapToAnnuelleView(input: {
     const c = r.copiesCouleurDelta ?? 0;
     const fn = r.copiesNoirFacturer ?? 0;
     const fc = r.copiesCouleurFacturer ?? 0;
-    const quotaN = r.quotaNoirDispo ?? 1000;
-    const quotaC = r.quotaCouleurDispo ?? 2000;
-    const margeN = r.quotaNoirReport != null ? r.quotaNoirReport : quotaN - n;
-    const margeC = r.quotaCouleurReport != null ? r.quotaCouleurReport : quotaC - c;
-    const dep = margeN < 0 || margeC < 0;
+    const dep = fn > 0 || fc > 0;
     if (dep) depassements += 1;
     consoN += n;
     consoC += c;

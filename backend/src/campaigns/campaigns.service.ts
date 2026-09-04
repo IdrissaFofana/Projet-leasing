@@ -317,7 +317,9 @@ export class CampaignsService {
   async addLignes(mois: string, dto: AddCampaignLignesDto) {
     const campagne = await this.findByMois(mois);
     if (campagne.cloturee) {
-      throw new BadRequestException(`Campagne ${mois} cloturee`);
+      throw new BadRequestException(
+        `Campagne ${mois} clôturée — ouvrez-la pour correction avant d’ajouter un copieur`,
+      );
     }
 
     const uniqueIds = [...new Set(dto.imprimanteIds)];
@@ -356,7 +358,9 @@ export class CampaignsService {
   async removeLigne(mois: string, printerId: string) {
     const campagne = await this.findByMois(mois);
     if (campagne.cloturee) {
-      throw new BadRequestException(`Campagne ${mois} cloturee`);
+      throw new BadRequestException(
+        `Campagne ${mois} clôturée — ouvrez-la pour correction avant de retirer un copieur`,
+      );
     }
 
     const ligne = await this.prisma.ligneSaisieMensuelle.findUnique({
@@ -368,16 +372,41 @@ export class CampaignsService {
       },
     });
     if (!ligne) throw new NotFoundException('Ligne campagne introuvable');
+
     if (ligne.archiveVersReleveId) {
-      throw new BadRequestException('Ligne deja liee a un releve — retrait impossible');
+      await this.readings.removeForCorrection(ligne.archiveVersReleveId);
     }
 
-    if (ligne.rapportPath) {
-      const abs = absoluteUploadPath(ligne.rapportPath);
+    const refreshed = await this.prisma.ligneSaisieMensuelle.findUnique({
+      where: { id: ligne.id },
+    });
+    if (!refreshed) {
+      return this.findByMois(mois);
+    }
+
+    if (refreshed.rapportPath) {
+      const abs = absoluteUploadPath(refreshed.rapportPath);
       if (fs.existsSync(abs)) fs.unlinkSync(abs);
     }
 
-    await this.prisma.ligneSaisieMensuelle.delete({ where: { id: ligne.id } });
+    await this.prisma.ligneSaisieMensuelle.delete({ where: { id: refreshed.id } });
+    return this.findByMois(mois);
+  }
+
+  /** Délie une ligne archivée : supprime le relevé lié et rend la ligne éditable. */
+  async unlinkLigne(mois: string, printerId: string) {
+    const { campagne, ligne } = await this.findLigne(mois, printerId);
+    if (!ligne.archiveVersReleveId) {
+      throw new BadRequestException('Cette ligne n’est pas liée à un relevé');
+    }
+
+    await this.readings.removeForCorrection(ligne.archiveVersReleveId);
+
+    await this.prisma.campagneSaisie.update({
+      where: { id: campagne.id },
+      data: { cloturee: false },
+    });
+
     return this.findByMois(mois);
   }
 
@@ -460,7 +489,9 @@ export class CampaignsService {
   async updateLigne(mois: string, printerId: string, dto: UpdateCampaignLigneDto) {
     const campagne = await this.findByMois(mois);
     if (campagne.cloturee) {
-      throw new BadRequestException(`Campagne ${mois} cloturee`);
+      throw new BadRequestException(
+        `Campagne ${mois} clôturée — ouvrez-la pour correction avant de modifier`,
+      );
     }
 
     const ligne = await this.prisma.ligneSaisieMensuelle.findUnique({
@@ -473,7 +504,9 @@ export class CampaignsService {
     });
     if (!ligne) throw new NotFoundException('Ligne campagne introuvable');
     if (ligne.archiveVersReleveId) {
-      throw new BadRequestException('Ligne deja liee a un releve');
+      throw new BadRequestException(
+        'Ligne liée à un relevé — déliez-la pour corriger, puis ré-archivez',
+      );
     }
 
     const merged = {
@@ -535,12 +568,6 @@ export class CampaignsService {
     if (!campagne) throw new NotFoundException('Campagne introuvable');
     if (!campagne.cloturee) {
       return this.findByMois(mois);
-    }
-    const unlinked = await this.prisma.ligneSaisieMensuelle.count({
-      where: { campagneId: campagne.id, archiveVersReleveId: null },
-    });
-    if (unlinked === 0) {
-      throw new BadRequestException('Campagne deja cloturee — toutes les lignes sont liees');
     }
     await this.prisma.campagneSaisie.update({
       where: { mois },

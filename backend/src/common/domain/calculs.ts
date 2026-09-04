@@ -180,6 +180,7 @@ export function computeReleve(
       alerteDeltaHaut: false,
       statut: StatutReleve.BASE_INITIALE,
       anomaly: false,
+      anomalyReasons: [] as string[],
     };
   }
 
@@ -257,7 +258,138 @@ export function computeReleve(
     alerteDeltaHaut,
     statut,
     anomaly: anomalyRaw,
+    anomalyReasons: anomalyRaw
+      ? explainAnomalyReasons(counters, previous)
+      : [],
   };
+}
+
+/** Messages lisibles expliquant pourquoi un relevé est en ANOMALIE_COMPTEUR. */
+export function explainAnomalyReasons(
+  counters: CounterInput,
+  previous: PreviousSnapshot,
+): string[] {
+  const totalNoir = counters.c112 + counters.c113;
+  const totalCouleur = counters.c122 + counters.c123;
+  const reasons: string[] = [];
+
+  if (totalNoir < previous.totalNoir) {
+    reasons.push(
+      `Total noir en baisse (${previous.totalNoir.toLocaleString('fr-FR')} → ${totalNoir.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (totalCouleur < previous.totalCouleur) {
+    reasons.push(
+      `Total couleur en baisse (${previous.totalCouleur.toLocaleString('fr-FR')} → ${totalCouleur.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (counters.c112 < previous.c112) {
+    reasons.push(
+      `112 (noir grand) inférieur au précédent (${previous.c112.toLocaleString('fr-FR')} → ${counters.c112.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (counters.c113 < previous.c113) {
+    reasons.push(
+      `113 (noir petit) inférieur au précédent (${previous.c113.toLocaleString('fr-FR')} → ${counters.c113.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (counters.c122 < previous.c122) {
+    reasons.push(
+      `122 (couleur grand) inférieur au précédent (${previous.c122.toLocaleString('fr-FR')} → ${counters.c122.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (counters.c123 < previous.c123) {
+    reasons.push(
+      `123 (couleur petit) inférieur au précédent (${previous.c123.toLocaleString('fr-FR')} → ${counters.c123.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (
+    counters.c501 != null &&
+    previous.c501 != null &&
+    counters.c501 < previous.c501
+  ) {
+    reasons.push(
+      `501 (scan) inférieur au précédent (${previous.c501.toLocaleString('fr-FR')} → ${counters.c501.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (counters.scanNoir < previous.scanNoir) {
+    reasons.push(
+      `Scan noir inférieur au précédent (${previous.scanNoir.toLocaleString('fr-FR')} → ${counters.scanNoir.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (counters.scanCouleur < previous.scanCouleur) {
+    reasons.push(
+      `Scan couleur inférieur au précédent (${previous.scanCouleur.toLocaleString('fr-FR')} → ${counters.scanCouleur.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (counters.envoi < previous.envoi) {
+    reasons.push(
+      `Envoi inférieur au précédent (${previous.envoi.toLocaleString('fr-FR')} → ${counters.envoi.toLocaleString('fr-FR')})`,
+    );
+  }
+
+  if (reasons.length === 0) {
+    reasons.push(
+      'Un ou plusieurs compteurs sont inférieurs au relevé précédent (sans motif justifiant un reset).',
+    );
+  }
+  return reasons;
+}
+
+/** Version allégée à partir des champs déjà stockés sur le relevé (liste). */
+export function explainAnomalyFromStored(row: {
+  totalNoir: number;
+  totalCouleur: number;
+  ancienTotalNoir?: number | null;
+  ancienTotalCouleur?: number | null;
+  ancienScanNoir?: number | null;
+  ancienScanCouleur?: number | null;
+  ancienEnvoi?: number | null;
+  scanNoir: number;
+  scanCouleur: number;
+  envoi: number;
+  copiesNoirBrutes?: number | null;
+  copiesCouleurBrutes?: number | null;
+  c501?: number | null;
+}): string[] {
+  const reasons: string[] = [];
+  if (row.ancienTotalNoir != null && row.totalNoir < row.ancienTotalNoir) {
+    reasons.push(
+      `Total noir en baisse (${row.ancienTotalNoir.toLocaleString('fr-FR')} → ${row.totalNoir.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (row.ancienTotalCouleur != null && row.totalCouleur < row.ancienTotalCouleur) {
+    reasons.push(
+      `Total couleur en baisse (${row.ancienTotalCouleur.toLocaleString('fr-FR')} → ${row.totalCouleur.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (row.ancienScanNoir != null && row.scanNoir < row.ancienScanNoir) {
+    reasons.push(
+      `Scan noir en baisse (${row.ancienScanNoir.toLocaleString('fr-FR')} → ${row.scanNoir.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (row.ancienScanCouleur != null && row.scanCouleur < row.ancienScanCouleur) {
+    reasons.push(
+      `Scan couleur en baisse (${row.ancienScanCouleur.toLocaleString('fr-FR')} → ${row.scanCouleur.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (row.ancienEnvoi != null && row.envoi < row.ancienEnvoi) {
+    reasons.push(
+      `Envoi en baisse (${row.ancienEnvoi.toLocaleString('fr-FR')} → ${row.envoi.toLocaleString('fr-FR')})`,
+    );
+  }
+  if (row.copiesNoirBrutes != null && row.copiesNoirBrutes < 0) {
+    reasons.push(`Δ noir brut négatif (${row.copiesNoirBrutes.toLocaleString('fr-FR')})`);
+  }
+  if (row.copiesCouleurBrutes != null && row.copiesCouleurBrutes < 0) {
+    reasons.push(`Δ couleur brut négatif (${row.copiesCouleurBrutes.toLocaleString('fr-FR')})`);
+  }
+  if (reasons.length === 0) {
+    reasons.push(
+      'Compteur(s) inférieur(s) au précédent — ouvrir le détail pour le diagnostic complet.',
+    );
+  }
+  return reasons;
 }
 
 export function computeMontantLigne(params: {

@@ -13,6 +13,8 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import type { ObservationReleve, Releve } from '@/lib/types';
 import { OBSERVATION_RELEVE_LABEL } from '@/lib/types';
 
+const RELEVES_QUERY_KEY = 'releves:lastQuery';
+
 function statutBadge(statut: string) {
   if (statut === 'OK' || statut === 'VALIDE') return 'badge badge-ok';
   if (statut === 'BASE_INITIALE' || statut === 'CONTROLE') return 'badge badge-info';
@@ -28,6 +30,15 @@ export default function ReleveDetailPage() {
   const canDelete = hasCrudPermission('readings', 'delete');
   const params = useParams<{ id: string }>();
   const [row, setRow] = useState<Releve | null>(null);
+  const [backHref, setBackHref] = useState('/releves');
+
+  useEffect(() => {
+    try {
+      setBackHref(sessionStorage.getItem(RELEVES_QUERY_KEY) || '/releves');
+    } catch {
+      setBackHref('/releves');
+    }
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -158,7 +169,7 @@ export default function ReleveDetailPage() {
         <div>
           <h1>{row.code}</h1>
           <p>
-            <Link href="/releves">← Retour</Link> · {row.imprimante?.code} · {row.moisFacture} ·{' '}
+            <Link href={backHref}>← Retour</Link> · {row.imprimante?.code} · {row.moisFacture} ·{' '}
             {formatDate(row.dateReleve)} ·{' '}
             <span className={statutBadge(row.statut)}>{row.statut}</span>
           </p>
@@ -211,6 +222,24 @@ export default function ReleveDetailPage() {
           ) : null}
         </div>
       </div>
+
+      {row.statut === 'ANOMALIE_COMPTEUR' ? (
+        <div className="panel" style={{ marginTop: '1rem', borderColor: '#fecaca' }}>
+          <h2>Cause de l&apos;anomalie compteur</h2>
+          {row.anomalyReasons && row.anomalyReasons.length > 0 ? (
+            <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.25rem' }}>
+              {row.anomalyReasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="empty-state">
+              Compteurs inférieurs au relevé précédent — justifiez via « Justifier anomalie »
+              (reset, remplacement…).
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <div className="panel">
         <h2>Compteurs</h2>

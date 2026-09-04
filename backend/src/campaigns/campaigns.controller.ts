@@ -150,6 +150,16 @@ export class CampaignsController {
     return this.campaigns.reopen(mois);
   }
 
+  @RequirePermission('campaigns', 'update')
+  @Post(':mois/lignes/:printerId/unlink')
+  @Roles(...writeRoles)
+  unlinkLigne(
+    @Param('mois') mois: string,
+    @Param('printerId') printerId: string,
+  ) {
+    return this.campaigns.unlinkLigne(mois, printerId);
+  }
+
   @RequirePermission('campaigns', 'create')
   @Post(':mois/archive')
   @Roles(...writeRoles)

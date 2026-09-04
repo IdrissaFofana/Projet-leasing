@@ -45,17 +45,18 @@ export function CounterWithPrevious({
   onChange,
   disabled,
   compact,
-  inputWidth = 80,
+  inputWidth,
 }: CounterWithPreviousProps) {
   const prevVal = previousCounterValue(previous, counterKey);
   const currentVal = value ?? '';
+  const widthStyle = inputWidth != null ? { width: inputWidth } : undefined;
 
   if (compact) {
     return (
       <div className="counter-pair counter-pair--compact">
         <input
-          className="input input-readonly"
-          style={{ width: inputWidth }}
+          className="input input-readonly counter-pair-input"
+          style={widthStyle}
           readOnly
           tabIndex={-1}
           title={`Ancien ${counterKey}: ${prevVal}`}
@@ -63,8 +64,8 @@ export function CounterWithPrevious({
           aria-label={`Ancien ${counterKey}`}
         />
         <input
-          className="input"
-          style={{ width: inputWidth }}
+          className="input counter-pair-input"
+          style={widthStyle}
           type="number"
           min={0}
           disabled={disabled}

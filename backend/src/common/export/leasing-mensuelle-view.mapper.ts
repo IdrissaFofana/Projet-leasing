@@ -75,6 +75,8 @@ type MargeRow = {
   quotaC: number;
   consoN: number;
   consoC: number;
+  factN: number;
+  factC: number;
   margeRestanteN: number;
   margeRestanteC: number;
 };
@@ -175,10 +177,11 @@ export function mapToHtmlView(data: LeasingMensuelleHtmlInput): LeasingMensuelle
     const quotaC = r.quotaCouleurDispo ?? 2000;
     const consoN = r.deltaN;
     const consoC = r.deltaC;
-    const margeRestanteN =
-      r.quotaNoirReport != null ? r.quotaNoirReport : quotaN - consoN;
-    const margeRestanteC =
-      r.quotaCouleurReport != null ? r.quotaCouleurReport : quotaC - consoC;
+    const factN = Math.max(0, r.factN ?? 0);
+    const factC = Math.max(0, r.factC ?? 0);
+    // Affichage : conso − quota (négatif = dépassement). Le report DB est toujours ≥ 0.
+    const margeRestanteN = quotaN - consoN;
+    const margeRestanteC = quotaC - consoC;
     return {
       imprimante: r.imprimante,
       localisation: r.localisation,
@@ -186,19 +189,24 @@ export function mapToHtmlView(data: LeasingMensuelleHtmlInput): LeasingMensuelle
       quotaC,
       consoN,
       consoC,
+      factN,
+      factC,
       margeRestanteN,
       margeRestanteC,
     };
   });
 
-  const depassement = margeRows.filter(
-    (r) => r.margeRestanteN < 0 || r.margeRestanteC < 0,
+  // Aligné sur la facturation : dépassement = copies hors quota à facturer
+  const depassement = margeRows.filter((r) => r.factN > 0 || r.factC > 0);
+  const sousMarge = margeRows.filter((r) => r.factN === 0 && r.factC === 0);
+  const cumulMargeN = sousMarge.reduce(
+    (s, r) => s + Math.max(0, r.margeRestanteN),
+    0,
   );
-  const sousMarge = margeRows.filter(
-    (r) => r.margeRestanteN >= 0 && r.margeRestanteC >= 0,
+  const cumulMargeC = sousMarge.reduce(
+    (s, r) => s + Math.max(0, r.margeRestanteC),
+    0,
   );
-  const cumulMargeN = sousMarge.reduce((s, r) => s + r.margeRestanteN, 0);
-  const cumulMargeC = sousMarge.reduce((s, r) => s + r.margeRestanteC, 0);
 
   const assistanceMap = new Map<
     string,

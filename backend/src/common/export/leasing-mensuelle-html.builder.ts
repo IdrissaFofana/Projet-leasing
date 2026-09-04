@@ -27,7 +27,7 @@ function loadLogoDataUri() {
 
 function renderCover(view: LeasingMensuelleHtmlView, logoDataUri: string, page: number) {
   const { meta } = view;
-  return `<section class="sheet cover" aria-label="Page de garde">
+  return `<section class="sheet sheet--landscape cover" aria-label="Page de garde">
     ${sheetHeader(logoDataUri)}
     <div class="cover__body">
       <h1 class="cover__title">Rapport Leasing Mensuel</h1>
@@ -88,7 +88,7 @@ function renderToc(view: LeasingMensuelleHtmlView, logoDataUri: string, pages: T
     view.annexeInterventions.length > 0
       ? `<li class="toc__item toc__item--sub"><span class="toc__label">Annexe 2 — Photos des interventions</span><span class="toc__page">${pages.annexe2}</span></li>`
       : '';
-  return `<section class="sheet" aria-label="Sommaire">
+  return `<section class="sheet sheet--landscape" aria-label="Sommaire">
     ${sheetHeader(logoDataUri)}
     <div class="sheet__inner">
       <h2 class="toc__title">Sommaire</h2>
@@ -277,6 +277,7 @@ function renderMargeTable(
         <th>Imprimante</th><th>Localisation</th>
         <th class="num">Quota N</th><th class="num">Quota C</th>
         <th class="num">Conso N</th><th class="num">Conso C</th>
+        <th class="num">Fact. N</th><th class="num">Fact. C</th>
         <th class="num">Marge rest. N</th><th class="num">Marge rest. C</th>
         <th>Statut</th>
       </tr>
@@ -297,6 +298,8 @@ function renderMargeTable(
             <td class="num">${fmtNum(r.quotaC)}</td>
             <td class="num">${fmtNum(r.consoN)}</td>
             <td class="num">${fmtNum(r.consoC)}</td>
+            <td class="num">${fmtNum(r.factN)}</td>
+            <td class="num">${fmtNum(r.factC)}</td>
             <td class="num ${negN ? 'val-negative' : 'val-positive'}">${fmtNum(r.margeRestanteN)}</td>
             <td class="num ${negC ? 'val-negative' : 'val-positive'}">${fmtNum(r.margeRestanteC)}</td>
             <td>${badge}</td>
@@ -314,7 +317,7 @@ function renderDepassement(view: LeasingMensuelleHtmlView, logoDataUri: string, 
       <div class="content-block">
         <div class="section-tag">Section 3</div>
         <h2 class="section-title">Copieurs ayant dépassé la marge incluse</h2>
-        <p class="section-desc">Quota mensuel dépassé — marge restante négative (copies à facturer).</p>
+        <p class="section-desc">Quota mensuel dépassé — copies hors quota à facturer (même critère que Fact. N / Fact. C).</p>
         ${renderMargeTable(view.depassement, 'Aucun dépassement ce mois.', 'danger')}
       </div>
     </div>
@@ -396,7 +399,7 @@ function renderAnnexePage(
         </svg>
         ${annexeNum === 1 ? 'Photo / scan du compteur non disponible' : 'Photo preuve d\'intervention non disponible'}`;
 
-  return `<section class="sheet" aria-label="Annexe ${annexeNum} — ${esc(item.label)}">
+  return `<section class="sheet sheet--landscape" aria-label="Annexe ${annexeNum} — ${esc(item.label)}">
     ${sheetHeader(logoDataUri)}
     <div class="sheet__inner">
       <div class="annexe-tag">Annexe ${annexeNum}</div>

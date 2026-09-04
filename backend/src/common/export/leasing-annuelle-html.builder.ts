@@ -185,6 +185,7 @@ export function buildLeasingAnnuelleHtml(view: LeasingAnnuelleHtmlView): string 
       },
       logo,
       1,
+      { landscape: true },
     ),
     renderIvoprestToc({
       intro: `Ce rapport ${view.meta.kind === 'annuelle' ? 'annuel' : view.meta.kind === 'semestrielle' ? 'semestriel' : 'trimestriel'} regroupe la synthèse du parc, les consommations cumulées, les assistances mensuelles et le détail des interventions par type de tâche.`,
@@ -198,6 +199,7 @@ export function buildLeasingAnnuelleHtml(view: LeasingAnnuelleHtmlView): string 
       footerLeft: footer,
       logoDataUri: logo,
       page: 2,
+      landscape: true,
     }),
     renderResume(view, logo, 3),
     renderConso(view, logo, 4),

@@ -124,6 +124,7 @@ export function buildFacturationMensuelleHtml(view: LeasingMensuelleHtmlView): s
     },
     logo,
     1,
+    { landscape: true },
   );
   const table = renderFacturationTable(view, logo, 2);
   return wrapIvoprestDocument(

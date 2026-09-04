@@ -128,15 +128,50 @@ export default function CampagneDetailPage() {
   }
 
   async function reopenCampagne() {
+    if (
+      !(await confirm({
+        title: 'Ouvrir pour correction',
+        message:
+          'Rouvrir la campagne pour corriger des valeurs, ajouter ou retirer des copieurs ? Les lignes déjà liées resteront liées jusqu’à ce que vous les déliez.',
+        confirmLabel: 'Ouvrir',
+      }))
+    ) {
+      return;
+    }
     setBusy(true);
     setError(null);
     setOk(null);
     try {
       await api.campaigns.reopen(mois);
-      setOk('Campagne rouverte — vous pouvez corriger et ré-archiver');
+      setOk('Campagne ouverte pour correction — déliez une ligne pour la modifier, puis ré-archivez');
       await load();
     } catch (e) {
       setError(e instanceof ApiError ? e.message : 'Réouverture impossible');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function unlinkLigne(ligne: CampagneLigne) {
+    if (
+      !(await confirm({
+        title: 'Délier pour corriger',
+        message: `Supprimer le relevé lié de ${ligne.imprimante?.code ?? 'ce copieur'} et rendre la ligne éditable ? Vous pourrez corriger puis ré-archiver. Impossible si la facture du mois est clôturée.`,
+        danger: true,
+        confirmLabel: 'Délier',
+      }))
+    ) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    setOk(null);
+    try {
+      await api.campaigns.unlinkLigne(mois, ligne.imprimanteId);
+      setOk(`Ligne ${ligne.imprimante?.code} déliée — corrigez puis ré-archivez`);
+      await load();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.message : 'Déliaison impossible');
     } finally {
       setBusy(false);
     }
@@ -277,10 +312,13 @@ export default function CampagneDetailPage() {
   }
 
   async function removeLigne(ligne: CampagneLigne) {
+    const linked = !!ligne.archiveVersReleveId;
     if (
       !(await confirm({
         title: 'Retirer le copieur',
-        message: `Retirer ${ligne.imprimante?.code ?? 'ce copieur'} de la campagne ?`,
+        message: linked
+          ? `Retirer ${ligne.imprimante?.code ?? 'ce copieur'} et supprimer son relevé lié ?`
+          : `Retirer ${ligne.imprimante?.code ?? 'ce copieur'} de la campagne ?`,
         danger: true,
         confirmLabel: 'Retirer',
       }))
@@ -400,14 +438,16 @@ export default function CampagneDetailPage() {
           {resume.brouillon} brouillon · {resume.pret} prêt(s) · {resume.liees} lié(s) au relevé
           {resume.anomalies > 0 ? ` · ${resume.anomalies} anomalie(s)` : ''}
         </p>
-        {campagne.cloturee && hasUnlinked ? (
+        {campagne.cloturee ? (
           <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.88rem', color: 'var(--danger, #c0392b)' }}>
-            Campagne clôturée sans relevé archivé — rouvrez la campagne puis cliquez « Archiver » pour créer les relevés.
+            Campagne clôturée. Cliquez « Ouvrir pour correction » pour ajouter/retirer un copieur ou délier une ligne
+            afin de corriger les compteurs, puis ré-archivez.
           </p>
         ) : null}
         <p className="muted" style={{ marginTop: '0.35rem', fontSize: '0.88rem' }}>
           Compteurs « anc. » = dernier relevé officiel connu par copieur (pas forcément le mois précédent).
           La saisie partielle reste possible en brouillon.
+          Une ligne liée doit être déliée avant modification.
         </p>
       </div>
 
@@ -426,9 +466,9 @@ export default function CampagneDetailPage() {
           <option value="liees">Liées au relevé</option>
           <option value="anomalie">Anomalies</option>
         </select>
-        {campagne.cloturee && hasUnlinked && canUpdate ? (
+        {campagne.cloturee && canUpdate ? (
           <button type="button" className="btn btn-soft" disabled={busy} onClick={() => void reopenCampagne()}>
-            Rouvrir campagne
+            Ouvrir pour correction
           </button>
         ) : null}
         <button
@@ -531,20 +571,24 @@ export default function CampagneDetailPage() {
         }}
       />
 
-      <DataTableShell empty={sortedLignes.length === 0} emptyMessage="Aucune ligne">
-        <table className="data-table">
+      <DataTableShell
+        className="campaign-entry-wrap"
+        empty={sortedLignes.length === 0}
+        emptyMessage="Aucune ligne"
+      >
+        <table className="data-table campaign-entry-table">
           <thead>
             <tr>
               <SortTh label="Copieur" sortKey="imprimante" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <SortTh label="Localisation" sortKey="localisation" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               {(['c112', 'c113', 'c122', 'c123', 'c501'] as const).map((k) => (
-                <th key={k} data-align="right">
+                <th key={k} data-align="right" className="campaign-entry-counter-col">
                   <div>{k === 'c501' ? '501' : k.slice(1)}</div>
                   <div className="th-sub">anc. / act.</div>
                 </th>
               ))}
-              <th>Motif</th>
-              <th>Rapport</th>
+              <th className="campaign-entry-motif-col">Motif</th>
+              <th className="campaign-entry-rapport-col">Rapport</th>
               <SortTh label="Statut" sortKey="statut" activeKey={sortKey} direction={sortDir} onSort={toggle} />
               <th className="col-actions" />
             </tr>
@@ -552,7 +596,7 @@ export default function CampagneDetailPage() {
           <tbody>
             {sortedLignes.map((l) => (
               <tr key={l.id}>
-                <td className="mono">
+                <td className="mono campaign-entry-sticky-col">
                   {l.imprimante?.code}
                   {l.archiveVersReleveId ? (
                     <>
@@ -566,9 +610,9 @@ export default function CampagneDetailPage() {
                     {l.previous ? `↳ ${l.previous.code} · ${l.previous.moisFacture}` : '↳ base initiale'}
                   </span>
                 </td>
-                <td>{l.imprimante?.localisation ?? '—'}</td>
+                <td className="campaign-entry-loc-col">{l.imprimante?.localisation ?? '—'}</td>
                 {(['c112', 'c113', 'c122', 'c123', 'c501'] as const).map((k) => (
-                  <td key={k} data-align="right">
+                  <td key={k} data-align="right" className="campaign-entry-counter-col">
                     <CounterWithPrevious
                       compact
                       previous={l.previous}
@@ -579,10 +623,9 @@ export default function CampagneDetailPage() {
                     />
                   </td>
                 ))}
-                <td>
+                <td className="campaign-entry-motif-col">
                   <select
-                    className="select"
-                    style={{ minWidth: 120 }}
+                    className="select campaign-entry-motif"
                     disabled={!!l.archiveVersReleveId || campagne.cloturee}
                     value={l.observationMotif ?? ''}
                     onChange={(e) => patchLigne(l.id, 'observationMotif', e.target.value)}
@@ -593,12 +636,11 @@ export default function CampagneDetailPage() {
                     ))}
                   </select>
                 </td>
-                <td style={{ minWidth: 160 }}>
+                <td className="campaign-entry-rapport-col">
                   {rapportNom(l) ? (
                     <button
                       type="button"
-                      className="btn btn-soft btn-sm"
-                      style={{ marginBottom: 4, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}
+                      className="btn btn-soft btn-sm campaign-entry-rapport-btn"
                       title={rapportNom(l) ?? undefined}
                       onClick={() =>
                         void api.campaigns.downloadRapportLigne(
@@ -635,6 +677,16 @@ export default function CampagneDetailPage() {
                 </td>
                 <td className="col-actions">
                   <div className="tbl-actions">
+                    {l.archiveVersReleveId && canUpdate && !campagne.cloturee ? (
+                      <button
+                        type="button"
+                        className="btn btn-soft btn-sm"
+                        disabled={busy}
+                        onClick={() => void unlinkLigne(l)}
+                      >
+                        Délier
+                      </button>
+                    ) : null}
                     <button
                       type="button"
                       className="btn btn-soft btn-sm"
@@ -647,7 +699,7 @@ export default function CampagneDetailPage() {
                       <button
                         type="button"
                         className="btn btn-soft btn-sm"
-                        disabled={busy || !!l.archiveVersReleveId || campagne.cloturee}
+                        disabled={busy || campagne.cloturee}
                         onClick={() => void removeLigne(l)}
                       >
                         Retirer

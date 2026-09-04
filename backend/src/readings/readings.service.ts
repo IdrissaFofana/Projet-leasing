@@ -20,6 +20,8 @@ import {
 import * as fs from 'fs';
 import {
   computeReleve,
+  explainAnomalyFromStored,
+  explainAnomalyReasons,
   poseToPreviousSnapshot,
   printerHasPoseCounters,
   type PreviousSnapshot,
@@ -66,7 +68,7 @@ export class ReadingsService {
     private readonly sequences: SequencesService,
   ) {}
 
-  findAll(query: ReadingQueryDto) {
+  async findAll(query: ReadingQueryDto) {
     const where: Prisma.ReleveCompteurWhereInput = {};
     if (query.mois) where.moisFacture = query.mois;
     if (query.imprimanteId) where.imprimanteId = query.imprimanteId;
@@ -104,7 +106,7 @@ export class ReadingsService {
       };
     }
 
-    return this.prisma.releveCompteur.findMany({
+    const rows = await this.prisma.releveCompteur.findMany({
       where,
       include: readingInclude,
       orderBy: [
@@ -113,6 +115,14 @@ export class ReadingsService {
         { moisFacture: 'desc' },
       ],
     });
+
+    return rows.map((row) => ({
+      ...row,
+      anomalyReasons:
+        row.statut === StatutReleve.ANOMALIE_COMPTEUR
+          ? explainAnomalyFromStored(row)
+          : [],
+    }));
   }
 
   async findOne(id: string) {
@@ -124,7 +134,50 @@ export class ReadingsService {
       },
     });
     if (!row) throw new NotFoundException('Releve introuvable');
-    return row;
+
+    let anomalyReasons: string[] = [];
+    if (row.statut === StatutReleve.ANOMALIE_COMPTEUR) {
+      const prev = await this.findPrevious(
+        row.imprimanteId,
+        row.moisFacture,
+        row.dateReleve.toISOString().slice(0, 10),
+        row.id,
+      );
+      if (prev) {
+        const snap: PreviousSnapshot =
+          'fromPose' in prev && prev.fromPose
+            ? prev
+            : {
+                totalNoir: prev.totalNoir,
+                totalCouleur: prev.totalCouleur,
+                c112: prev.c112,
+                c113: prev.c113,
+                c122: prev.c122,
+                c123: prev.c123,
+                c501: prev.c501,
+                scanNoir: prev.scanNoir,
+                scanCouleur: prev.scanCouleur,
+                envoi: prev.envoi,
+              };
+        anomalyReasons = explainAnomalyReasons(
+          {
+            c112: row.c112,
+            c113: row.c113,
+            c122: row.c122,
+            c123: row.c123,
+            c501: row.c501,
+            scanNoir: row.scanNoir,
+            scanCouleur: row.scanCouleur,
+            envoi: row.envoi,
+          },
+          snap,
+        );
+      } else {
+        anomalyReasons = explainAnomalyFromStored(row);
+      }
+    }
+
+    return { ...row, anomalyReasons };
   }
 
   async previous(query: PreviousReadingQueryDto) {
@@ -330,6 +383,37 @@ export class ReadingsService {
       type: row.rapportMime ?? 'application/octet-stream',
       disposition: `inline; filename="${row.rapportNom ?? 'rapport'}"`,
     });
+  }
+
+  /**
+   * Suppression pour correction campagne : déverrouille un relevé VALIDE
+   * puis délègue à remove() (relie la ligne campagne en PRET, rouvre la campagne).
+   */
+  async removeForCorrection(id: string, userId?: string) {
+    const existing = await this.findOne(id);
+    await this.ensureFactureNonCloturee(existing.moisFacture);
+
+    if (existing.statut === StatutReleve.VALIDE) {
+      await this.prisma.releveCompteur.update({
+        where: { id },
+        data: {
+          statut: StatutReleve.OK,
+          valideAt: null,
+          valideParId: null,
+        },
+      });
+      await this.prisma.releveAudit.create({
+        data: {
+          releveId: id,
+          userId: userId ?? null,
+          action: 'UNLOCK_FOR_CORRECTION',
+          beforeJson: JSON.stringify({ statut: StatutReleve.VALIDE }),
+          afterJson: JSON.stringify({ statut: StatutReleve.OK }),
+        },
+      });
+    }
+
+    return this.remove(id, userId);
   }
 
   async remove(id: string, userId?: string) {
@@ -931,7 +1015,7 @@ export class ReadingsService {
       avgDeltaNoir: avgs?.avgDeltaNoir,
       avgDeltaCouleur: avgs?.avgDeltaCouleur,
     });
-    const { anomaly: _anomaly, ...computed } = result;
+    const { anomaly: _anomaly, anomalyReasons: _reasons, ...computed } = result;
     if (!previous) {
       return {
         ...computed,

@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { DataTableShell, SortTh, useTableSort } from '@/components/DataTable';
 import { PageFeedback } from '@/components/feedback/PageFeedback';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { FileDropzone } from '@/components/FileDropzone';
 import {
   CounterWithPrevious,
@@ -26,6 +26,15 @@ import type {
 import { OBSERVATION_RELEVE_LABEL } from '@/lib/types';
 
 type Tab = 'liste' | 'mensuelle' | 'controle' | 'matrice';
+
+const RELEVES_QUERY_KEY = 'releves:lastQuery';
+
+function parseTab(raw: string | null): Tab {
+  if (raw === 'mensuelle' || raw === 'controle' || raw === 'matrice' || raw === 'liste') {
+    return raw;
+  }
+  return 'liste';
+}
 
 const COUNTER_STEPS = [
   { key: 'c112', label: '112 — Noir grand' },
@@ -96,18 +105,21 @@ function parseCsv(text: string) {
 
 export default function RelevesPage() {
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>('liste');
-  const [mois, setMois] = useState(currentMois());
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<Tab>(() => parseTab(searchParams.get('tab')));
+  const [mois, setMois] = useState(() => searchParams.get('mois') || currentMois());
   const [rows, setRows] = useState<Releve[]>([]);
   const [monthly, setMonthly] = useState<MonthlyView | null>(null);
   const [control, setControl] = useState<ControlView | null>(null);
   const [matrix, setMatrix] = useState<ReadingsMatrix | null>(null);
   const [moisDebut, setMoisDebut] = useState(() => {
+    const fromUrl = searchParams.get('moisDebut');
+    if (fromUrl) return fromUrl;
     const [y, m] = currentMois().split('-').map(Number);
     const d = new Date(y, m - 4, 1);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
   });
-  const [moisFin, setMoisFin] = useState(currentMois());
+  const [moisFin, setMoisFin] = useState(() => searchParams.get('moisFin') || currentMois());
   const [matrixMetric, setMatrixMetric] = useState<'compteurs' | 'delta' | 'facturer'>('compteurs');
   const [printers, setPrinters] = useState<Imprimante[]>([]);
   const [services, setServices] = useState<NamedRef[]>([]);
@@ -121,11 +133,11 @@ export default function RelevesPage() {
   const [form, setForm] = useState(emptyForm);
   const [rapportFile, setRapportFile] = useState<File | null>(null);
   const [previous, setPrevious] = useState<PreviousReading>(null);
-  const [q, setQ] = useState('');
-  const [serviceId, setServiceId] = useState('');
-  const [marqueId, setMarqueId] = useState('');
-  const [localisation, setLocalisation] = useState('');
-  const [fileFilter, setFileFilter] = useState('');
+  const [q, setQ] = useState(() => searchParams.get('q') || '');
+  const [serviceId, setServiceId] = useState(() => searchParams.get('serviceId') || '');
+  const [marqueId, setMarqueId] = useState(() => searchParams.get('marqueId') || '');
+  const [localisation, setLocalisation] = useState(() => searchParams.get('localisation') || '');
+  const [fileFilter, setFileFilter] = useState(() => searchParams.get('file') || '');
   const [importText, setImportText] = useState('');
   const [importMsg, setImportMsg] = useState<string | null>(null);
   const [acceptId, setAcceptId] = useState<string | null>(null);
@@ -134,6 +146,43 @@ export default function RelevesPage() {
   const listeSort = useTableSort<Releve>('localisation');
   const mensuelleSort = useTableSort<MonthlyView['lignes'][number]>('imprimante');
   const controleSort = useTableSort<ControlView['lignes'][number]>('code');
+
+  useEffect(() => {
+    const sp = new URLSearchParams();
+    if (tab !== 'liste') sp.set('tab', tab);
+    if (mois) sp.set('mois', mois);
+    if (q) sp.set('q', q);
+    if (serviceId) sp.set('serviceId', serviceId);
+    if (marqueId) sp.set('marqueId', marqueId);
+    if (localisation) sp.set('localisation', localisation);
+    if (fileFilter) sp.set('file', fileFilter);
+    if (tab === 'matrice') {
+      if (moisDebut) sp.set('moisDebut', moisDebut);
+      if (moisFin) sp.set('moisFin', moisFin);
+    }
+    const next = sp.toString();
+    const href = next ? `/releves?${next}` : '/releves';
+    try {
+      sessionStorage.setItem(RELEVES_QUERY_KEY, href);
+    } catch {
+      /* ignore */
+    }
+    if (next !== searchParams.toString()) {
+      router.replace(href, { scroll: false });
+    }
+  }, [
+    tab,
+    mois,
+    q,
+    serviceId,
+    marqueId,
+    localisation,
+    fileFilter,
+    moisDebut,
+    moisFin,
+    router,
+    searchParams,
+  ]);
 
   async function load() {
     setLoading(true);
@@ -741,7 +790,29 @@ export default function RelevesPage() {
                     <td data-align="right">{r.copiesNoirFacturer}</td>
                     <td data-align="right">{r.copiesCouleurFacturer}</td>
                     <td data-align="right">{r.quotaNoirReport ?? '—'}</td>
-                    <td><span className={statutBadge(r.statut)}>{r.statut}</span></td>
+                    <td>
+                      <span
+                        className={statutBadge(r.statut)}
+                        title={r.anomalyReasons?.length ? r.anomalyReasons.join(' · ') : undefined}
+                      >
+                        {r.statut}
+                      </span>
+                      {r.statut === 'ANOMALIE_COMPTEUR' && r.anomalyReasons?.length ? (
+                        <ul
+                          style={{
+                            margin: '0.35rem 0 0',
+                            paddingLeft: '1.1rem',
+                            fontSize: '0.78rem',
+                            color: 'var(--danger, #b91c1c)',
+                            maxWidth: '18rem',
+                          }}
+                        >
+                          {r.anomalyReasons.map((reason) => (
+                            <li key={reason}>{reason}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                    </td>
                   </tr>
                 ))}
               </tbody>

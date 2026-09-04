@@ -465,6 +465,10 @@ export const api = {
         restantes: number;
       }>(`/campaigns/${mois}/archive`, { method: 'POST' }),
     reopen: (mois: string) => request<Campagne>(`/campaigns/${mois}/reopen`, { method: 'POST' }),
+    unlinkLigne: (mois: string, printerId: string) =>
+      request<Campagne>(`/campaigns/${mois}/lignes/${printerId}/unlink`, {
+        method: 'POST',
+      }),
     exportFile: (mois: string, format: 'xlsx' | 'pdf') =>
       downloadFile(
         `/campaigns/${mois}/export${qs({ format })}`,

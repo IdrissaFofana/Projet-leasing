@@ -84,6 +84,7 @@ export function renderIvoprestCover(
   meta: CoverMeta,
   logoDataUri: string,
   page: number,
+  opts?: { landscape?: boolean },
 ) {
   const fieldsHtml = meta.fields
     .map((f) => {
@@ -131,7 +132,8 @@ export function renderIvoprestCover(
     )
     .join('\n');
 
-  return `<section class="sheet cover" aria-label="Page de garde">
+  const sheetClass = opts?.landscape ? 'sheet sheet--landscape cover' : 'sheet cover';
+  return `<section class="${sheetClass}" aria-label="Page de garde">
     ${sheetHeader(logoDataUri)}
     <div class="cover__body">
       <h1 class="cover__title">${esc(meta.title)}</h1>
@@ -174,6 +176,7 @@ export function renderIvoprestToc(opts: {
   footerLeft: string;
   logoDataUri: string;
   page: number;
+  landscape?: boolean;
 }) {
   const items = opts.items
     .map(
@@ -181,7 +184,8 @@ export function renderIvoprestToc(opts: {
         `<li class="toc__item${it.sub ? ' toc__item--sub' : ''}"><span class="toc__label">${esc(it.label)}</span><span class="toc__page">${esc(it.page)}</span></li>`,
     )
     .join('\n');
-  return `<section class="sheet" aria-label="Sommaire">
+  const sheetClass = opts.landscape ? 'sheet sheet--landscape' : 'sheet';
+  return `<section class="${sheetClass}" aria-label="Sommaire">
     ${sheetHeader(opts.logoDataUri)}
     <div class="sheet__inner">
       <h2 class="toc__title">Sommaire</h2>

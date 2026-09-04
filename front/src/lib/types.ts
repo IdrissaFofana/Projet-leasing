@@ -327,6 +327,7 @@ export type Releve = {
   scansCouleurFacturer?: number;
   envoisFacturer?: number;
   alerteDeltaHaut?: boolean;
+  anomalyReasons?: string[];
   statut: StatutReleve;
   observationMotif?: ObservationReleve | null;
   observations: string | null;
