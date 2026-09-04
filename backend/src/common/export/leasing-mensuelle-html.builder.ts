@@ -99,9 +99,10 @@ function renderToc(view: LeasingMensuelleHtmlView, logoDataUri: string, pages: T
       <ol class="toc__list">
         <li class="toc__item"><span class="toc__label">Page de garde</span><span class="toc__page">${pages.cover}</span></li>
         <li class="toc__item"><span class="toc__label">1. Relevés compteurs par imprimante</span><span class="toc__page">${pages.releves}</span></li>
-        <li class="toc__item"><span class="toc__label">2. Copieurs ayant dépassé la marge incluse</span><span class="toc__page">${pages.depassement}</span></li>
-        <li class="toc__item"><span class="toc__label">3. Copieurs n'ayant pas dépassé la marge incluse</span><span class="toc__page">${pages.sousMarge}</span></li>
-        <li class="toc__item"><span class="toc__label">4. Calendrier des assistances du mois</span><span class="toc__page">${pages.assistances}</span></li>
+        <li class="toc__item"><span class="toc__label">2. Copies noir &amp; couleur à facturer</span><span class="toc__page">${pages.facturation}</span></li>
+        <li class="toc__item"><span class="toc__label">3. Copieurs ayant dépassé la marge incluse</span><span class="toc__page">${pages.depassement}</span></li>
+        <li class="toc__item"><span class="toc__label">4. Copieurs n'ayant pas dépassé la marge incluse</span><span class="toc__page">${pages.sousMarge}</span></li>
+        <li class="toc__item"><span class="toc__label">5. Calendrier des assistances du mois</span><span class="toc__page">${pages.assistances}</span></li>
         ${annexe1Item}
         ${annexe2Item}
       </ol>
@@ -114,6 +115,7 @@ type TocPages = {
   cover: number;
   toc: number;
   releves: number;
+  facturation: number;
   depassement: number;
   sousMarge: number;
   assistances: number;
@@ -122,18 +124,19 @@ type TocPages = {
 };
 
 function computeTocPages(view: LeasingMensuelleHtmlView): TocPages {
-  const annexe1 = view.annexeCompteurs.length > 0 ? 7 : 0;
+  const annexe1 = view.annexeCompteurs.length > 0 ? 8 : 0;
   const annexe2 =
     view.annexeInterventions.length > 0
-      ? (annexe1 > 0 ? annexe1 : 7) + view.annexeCompteurs.length
+      ? (annexe1 > 0 ? annexe1 : 8) + view.annexeCompteurs.length
       : 0;
   return {
     cover: 1,
     toc: 2,
     releves: 3,
-    depassement: 4,
-    sousMarge: 5,
-    assistances: 6,
+    facturation: 4,
+    depassement: 5,
+    sousMarge: 6,
+    assistances: 7,
     annexe1,
     annexe2,
   };
@@ -178,6 +181,81 @@ function renderReleves(view: LeasingMensuelleHtmlView, logoDataUri: string, page
             </thead>
             <tbody>${rows}</tbody>
           </table>
+        </div>
+      </div>
+    </div>
+    ${sheetFooter(`${view.meta.reference} · ${view.meta.footerBrand}`, page)}
+  </section>`;
+}
+
+function renderFacturation(view: LeasingMensuelleHtmlView, logoDataUri: string, page: number) {
+  const t = view.totauxFacturation;
+  const rows =
+    view.facturation.length > 0
+      ? view.facturation
+          .map((r) => {
+            const statut = r.sousQuota
+              ? '<span class="badge badge--ok">Sous quota</span>'
+              : '<span class="badge badge--danger">À facturer</span>';
+            return `<tr>
+          <td class="code">${esc(r.imprimante)}</td>
+          <td>${esc(r.localisation)}</td>
+          <td class="num">${fmtNum(r.consoN)}</td>
+          <td class="num">${fmtNum(r.consoC)}</td>
+          <td class="num">${fmtNum(r.quotaN)}</td>
+          <td class="num">${fmtNum(r.quotaC)}</td>
+          <td class="num">${fmtNum(r.factN)}</td>
+          <td class="num">${fmtNum(r.factC)}</td>
+          <td>${statut}</td>
+        </tr>`;
+          })
+          .join('')
+      : `<tr><td colspan="9" class="empty-state">Aucun relevé — rien à facturer.</td></tr>`;
+
+  const tfoot =
+    view.facturation.length > 0
+      ? `<tfoot>
+      <tr class="data-table__total">
+        <td colspan="6"><strong>Total copies hors quota</strong></td>
+        <td class="num"><strong>${fmtNum(t.factN)}</strong></td>
+        <td class="num"><strong>${fmtNum(t.factC)}</strong></td>
+        <td></td>
+      </tr>
+    </tfoot>`
+      : '';
+
+  return `<section class="sheet sheet--landscape" aria-label="Copies à facturer">
+    ${sheetHeader(logoDataUri)}
+    <div class="sheet__inner">
+      <div class="content-block">
+        <div class="section-tag">Section 2</div>
+        <h2 class="section-title">Copies noir &amp; couleur à facturer</h2>
+        <p class="section-desc">
+          Détail par copieur : consommation, quota inclus et copies hors quota à facturer.
+          Si le copieur reste sous quota, Fact. N et Fact. C valent <strong>0</strong>.
+        </p>
+        <div class="table-wrap">
+          <table class="data-table data-table--facturation">
+            <thead>
+              <tr>
+                <th>Copieur</th>
+                <th>Localisation</th>
+                <th class="num">Conso N</th>
+                <th class="num">Conso C</th>
+                <th class="num">Quota N</th>
+                <th class="num">Quota C</th>
+                <th class="num">Fact. N</th>
+                <th class="num">Fact. C</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+            ${tfoot}
+          </table>
+        </div>
+        <div class="summary-box">
+          Total copies hors quota ce mois :
+          <span>${fmtNum(t.factN)} N</span> · <span>${fmtNum(t.factC)} C</span>
         </div>
       </div>
     </div>
@@ -234,7 +312,7 @@ function renderDepassement(view: LeasingMensuelleHtmlView, logoDataUri: string, 
     ${sheetHeader(logoDataUri)}
     <div class="sheet__inner">
       <div class="content-block">
-        <div class="section-tag">Section 2</div>
+        <div class="section-tag">Section 3</div>
         <h2 class="section-title">Copieurs ayant dépassé la marge incluse</h2>
         <p class="section-desc">Quota mensuel dépassé — marge restante négative (copies à facturer).</p>
         ${renderMargeTable(view.depassement, 'Aucun dépassement ce mois.', 'danger')}
@@ -256,7 +334,7 @@ function renderSousMarge(view: LeasingMensuelleHtmlView, logoDataUri: string, pa
     ${sheetHeader(logoDataUri)}
     <div class="sheet__inner">
       <div class="content-block">
-        <div class="section-tag">Section 3</div>
+        <div class="section-tag">Section 4</div>
         <h2 class="section-title">Copieurs n'ayant pas dépassé la marge incluse</h2>
         <p class="section-desc">Marge restante par copieur et cumul du parc sous quota.</p>
         ${renderMargeTable(view.sousMarge, 'Aucun copieur sous quota ce mois.', 'ok')}
@@ -286,7 +364,7 @@ function renderAssistances(view: LeasingMensuelleHtmlView, logoDataUri: string, 
     ${sheetHeader(logoDataUri)}
     <div class="sheet__inner">
       <div class="content-block">
-        <div class="section-tag">Section 4</div>
+        <div class="section-tag">Section 5</div>
         <h2 class="section-title">Calendrier des assistances du mois</h2>
             <p class="section-desc">Dates d'intervention par imprimante (1 assistance incluse / copieur / mois ; prélèvements compteur et pannes hors quota).</p>
         <div class="table-wrap">
@@ -342,6 +420,7 @@ export function buildLeasingMensuelleHtml(view: LeasingMensuelleHtmlView): strin
   sections.push(renderToc(view, logoDataUri, pages));
   pageNum = 3;
   sections.push(renderReleves(view, logoDataUri, pageNum++));
+  sections.push(renderFacturation(view, logoDataUri, pageNum++));
   sections.push(renderDepassement(view, logoDataUri, pageNum++));
   sections.push(renderSousMarge(view, logoDataUri, pageNum++));
   sections.push(renderAssistances(view, logoDataUri, pageNum++));

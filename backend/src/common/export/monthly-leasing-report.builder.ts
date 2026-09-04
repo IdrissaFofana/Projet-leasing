@@ -15,6 +15,9 @@ export type ReportAttachment = {
 
 export type LeasingMensuelleReportData = {
   mois: string;
+  /** Tarifs unitaires utilisés pour le tableau « copies à facturer » (XOF). */
+  prixNb?: number;
+  prixCouleur?: number;
   campagne: {
     mois: string;
     dateReleve: string;

@@ -38,6 +38,17 @@ export class ReportsController {
   }
 
   @RequirePermission('reports', 'read')
+  @Get('facturation-mensuelle/:mois')
+  @Roles(...readRoles)
+  async facturationMensuelle(@Param('mois') mois: string) {
+    const file = await this.reports.generateFacturationMensuelle(mois);
+    return new StreamableFile(file.buffer, {
+      type: file.mime,
+      disposition: `attachment; filename="${file.filename}"`,
+    });
+  }
+
+  @RequirePermission('reports', 'read')
   @Get('leasing-annuelle/:annee')
   @Roles(...readRoles)
   async leasingAnnuelle(@Param('annee') annee: string) {

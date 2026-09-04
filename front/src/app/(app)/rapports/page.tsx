@@ -9,6 +9,7 @@ import type { Maintenance } from '@/lib/types';
 
 type BusyKey =
   | 'mensuel'
+  | 'facturation'
   | 'annuel'
   | 'semestriel'
   | 'trimestriel'
@@ -156,6 +157,43 @@ export default function RapportsPage() {
             </Link>
             <Link href={`/campagnes/${mois}`} className="btn btn-soft">
               Voir campagne
+            </Link>
+          </div>
+        </div>
+
+        <div className="panel">
+          <h2>Facturation mensuelle (prix)</h2>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Prix à facturer par copieur (copies hors quota × tarifs) et prix total du mois.
+            Sous quota = 0 F.
+          </p>
+          <label className="muted" style={{ display: 'block', marginBottom: 6 }}>
+            Mois
+          </label>
+          <input
+            className="input"
+            type="month"
+            value={mois}
+            onChange={(e) => setMois(e.target.value)}
+            style={{ maxWidth: 220 }}
+          />
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+            <button
+              type="button"
+              className="btn btn-esay"
+              disabled={busy !== null || !mois}
+              onClick={() =>
+                void run(
+                  'facturation',
+                  () => api.reports.facturationMensuelle(mois),
+                  `Rapport facturation ${mois} téléchargé`,
+                )
+              }
+            >
+              {busy === 'facturation' ? 'Génération…' : 'Générer le PDF'}
+            </button>
+            <Link href={`/facturation/${mois}`} className="btn btn-soft">
+              Voir facturation
             </Link>
           </div>
         </div>

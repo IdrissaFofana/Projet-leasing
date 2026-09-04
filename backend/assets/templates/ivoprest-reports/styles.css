@@ -22,7 +22,9 @@
 
   --sheet-w: 210mm;
   --sheet-h: 297mm;
-  --margin: 18mm;
+  --sheet-w-landscape: 297mm;
+  --sheet-h-landscape: 210mm;
+  --margin: 14mm;
 }
 
 *,
@@ -32,7 +34,7 @@
 }
 
 html {
-  font-size: 10pt;
+  font-size: 11pt;
 }
 
 body {
@@ -40,7 +42,7 @@ body {
   font-family: var(--font-body);
   color: var(--ink);
   background: #c8cdd4;
-  line-height: 1.45;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -114,9 +116,8 @@ body {
 }
 
 .sheet--landscape {
-  /* conservé pour compatibilité — rendu identique au portrait */
-  width: var(--sheet-w);
-  min-height: var(--sheet-h);
+  width: var(--sheet-w-landscape);
+  min-height: var(--sheet-h-landscape);
 }
 
 .sheet__inner {
@@ -439,29 +440,29 @@ body {
 
 /* ── Sections contenu ── */
 .section-tag {
-  font-size: 0.62rem;
+  font-size: 7.5pt;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--blue);
-  margin-bottom: 1mm;
+  margin-bottom: 1.5mm;
 }
 
 .section-title {
   font-family: var(--font-display);
-  font-size: 1.45rem;
+  font-size: 18pt;
   font-weight: 600;
   color: var(--navy);
-  margin: 0 0 2mm;
+  margin: 0 0 2.5mm;
   line-height: 1.2;
 }
 
 .section-desc {
-  font-size: 0.78rem;
+  font-size: 9.5pt;
   color: var(--muted);
   margin: 0 0 5mm;
-  padding-bottom: 3mm;
-  border-bottom: 0.8pt solid var(--blue);
+  padding-bottom: 3.5mm;
+  border-bottom: 1pt solid var(--blue);
 }
 
 .content-block + .content-block {
@@ -472,56 +473,75 @@ body {
 .table-wrap {
   width: 100%;
   overflow: visible;
+  border: 1pt solid var(--line);
+  border-radius: 6px;
+  background: var(--white);
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.68rem;
-  table-layout: fixed;
+  font-size: 9.5pt;
+  line-height: 1.35;
+  table-layout: auto;
 }
 
 .data-table thead th {
   text-align: left;
-  font-size: 0.58rem;
+  font-size: 8pt;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--blue);
-  padding: 2mm 1.5mm;
-  border-bottom: 1pt solid var(--blue);
-  white-space: normal;
-  line-height: 1.25;
-  word-break: break-word;
+  color: #fff;
+  background: linear-gradient(90deg, var(--navy) 0%, var(--navy-soft) 100%);
+  padding: 3.2mm 2.8mm;
+  border-bottom: none;
+  white-space: nowrap;
+  line-height: 1.3;
+  vertical-align: middle;
+}
+
+.data-table thead th.num,
+.data-table thead th.center {
+  text-align: center;
 }
 
 .data-table tbody td {
-  padding: 2mm 1.5mm;
-  border-bottom: 0.5pt solid var(--line);
-  vertical-align: top;
+  padding: 3mm 2.8mm;
+  border-bottom: 0.6pt solid var(--line);
+  vertical-align: middle;
   word-break: break-word;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  font-size: 9.5pt;
+  color: var(--ink);
+}
+
+.data-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
 .data-table tbody tr:nth-child(even) td {
-  background: var(--row-alt);
+  background: #f4f8f4;
+}
+
+.data-table tbody tr:hover td {
+  background: #eef6ee;
 }
 
 .data-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum';
-  width: 8%;
+  font-family: 'IBM Plex Mono', 'Consolas', monospace;
+  font-size: 9pt;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.data-table th:first-child,
-.data-table td:first-child {
-  width: 10%;
-}
-
-.data-table th:nth-child(2),
-.data-table td:nth-child(2) {
-  width: 18%;
+.data-table thead th.num {
+  font-family: var(--font-body);
+  font-size: 7.5pt;
+  font-weight: 700;
 }
 
 .data-table .center {
@@ -529,16 +549,47 @@ body {
 }
 
 .data-table .code {
-  font-weight: 600;
-  color: var(--navy-soft);
+  font-weight: 700;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+.data-table tfoot td,
+.data-table__total td {
+  background: #e8f3e8 !important;
+  border-top: 1.5pt solid var(--navy);
+  padding: 3.5mm 2.4mm;
+  font-size: 9.5pt;
+  color: var(--navy);
+  vertical-align: middle;
+}
+
+.data-table--facturation {
+  font-size: 8.5pt;
+}
+
+.data-table--facturation thead th {
+  font-size: 7pt;
+  padding: 2.6mm 1.8mm;
+  white-space: normal;
+}
+
+.data-table--facturation tbody td {
+  font-size: 8.5pt;
+  padding: 2.4mm 1.8mm;
+}
+
+.data-table--facturation .num {
+  font-size: 8pt;
 }
 
 .badge {
   display: inline-block;
-  padding: 0.5mm 2mm;
-  border-radius: 3px;
-  font-size: 0.65rem;
-  font-weight: 600;
+  padding: 1mm 2.8mm;
+  border-radius: 4px;
+  font-size: 8pt;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
 .badge--danger {
@@ -564,13 +615,13 @@ body {
 /* Encadré cumul */
 .summary-box {
   margin-top: 5mm;
-  padding: 4mm 6mm;
+  padding: 4.5mm 6mm;
   background: var(--paper);
   border: 1pt solid var(--line);
-  border-left: 3pt solid var(--navy);
-  border-radius: 4px;
+  border-left: 3.5pt solid var(--navy);
+  border-radius: 5px;
   text-align: center;
-  font-size: 0.82rem;
+  font-size: 10.5pt;
   font-weight: 600;
   color: var(--navy);
 }
@@ -580,27 +631,28 @@ body {
 }
 
 .empty-state {
-  font-size: 0.78rem;
+  font-size: 9.5pt;
   font-style: italic;
   color: var(--muted);
-  padding: 4mm 0;
+  padding: 5mm 3mm;
+  text-align: center;
 }
 
 /* Dates assistances */
 .dates-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 1.5mm;
+  gap: 1.8mm;
 }
 
 .date-chip {
   display: inline-block;
-  padding: 0.8mm 2.5mm;
+  padding: 1.2mm 3mm;
   background: #f3faf3;
   color: var(--navy-soft);
-  border-radius: 3px;
-  font-size: 0.68rem;
-  font-weight: 500;
+  border-radius: 4px;
+  font-size: 8.5pt;
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -669,13 +721,19 @@ body {
   margin: 0;
 }
 
+@page landscape-sheet {
+  size: A4 landscape;
+  margin: 0;
+}
+
 @media print {
   html,
   body {
-    width: 210mm;
+    width: auto;
     background: #fff;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
+    font-size: 11pt;
   }
 
   .preview-bar {
@@ -688,8 +746,7 @@ body {
     gap: 0;
   }
 
-  .sheet,
-  .sheet--landscape {
+  .sheet {
     box-shadow: none;
     width: 210mm !important;
     max-width: 210mm !important;
@@ -701,43 +758,70 @@ body {
     page: auto;
   }
 
+  .sheet--landscape {
+    width: 297mm !important;
+    max-width: 297mm !important;
+    min-height: 210mm;
+    page: landscape-sheet;
+  }
+
   .sheet:last-child {
     page-break-after: auto;
     break-after: auto;
   }
 
   .sheet__header {
-    padding: 4mm 12mm 2mm;
+    padding: 5mm 12mm 3mm;
   }
 
   .sheet__inner {
-    padding: 2mm 12mm 6mm;
+    padding: 3mm 12mm 8mm;
   }
 
   .sheet__footer {
-    padding: 0 12mm 10mm;
+    padding: 3mm 12mm 8mm 12mm;
+    font-size: 8pt;
   }
 
   .cover__body {
-    padding: 0 12mm 12mm;
+    padding: 0 14mm 12mm;
   }
 
   .section-title {
-    font-size: 1.25rem;
+    font-size: 16pt;
+  }
+
+  .section-desc {
+    font-size: 9pt;
+    margin-bottom: 4mm;
+  }
+
+  .table-wrap {
+    overflow: visible;
+    width: 100%;
   }
 
   .data-table {
-    font-size: 6.5pt;
-    table-layout: fixed;
+    font-size: 9pt;
+    table-layout: auto;
   }
 
   .data-table thead th {
-    font-size: 5.5pt;
-    padding: 1.2mm 1mm;
+    font-size: 7.5pt;
+    padding: 2.8mm 2.4mm;
+    color: #fff !important;
+    background: #2a6b2a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 
   .data-table tbody td {
-    padding: 1.2mm 1mm;
+    padding: 2.6mm 2.4mm;
+    font-size: 9pt;
+  }
+
+  .data-table .num {
+    font-size: 8.5pt;
   }
 
   .data-table tbody tr {
@@ -745,9 +829,10 @@ body {
     page-break-inside: avoid;
   }
 
-  .table-wrap {
-    overflow: visible;
-    width: 100%;
+  .data-table tbody tr:nth-child(even) td {
+    background: #f4f8f4 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
 }
 

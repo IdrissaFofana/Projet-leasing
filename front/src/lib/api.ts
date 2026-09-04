@@ -504,6 +504,11 @@ export const api = {
   reports: {
     leasingMensuelle: (mois: string) =>
       downloadFile(`/reports/leasing-mensuelle/${mois}`, `leasing-mensuelle-${mois}.pdf`),
+    facturationMensuelle: (mois: string) =>
+      downloadFile(
+        `/reports/facturation-mensuelle/${mois}`,
+        `facturation-mensuelle-${mois}.pdf`,
+      ),
     leasingAnnuelle: (annee: string) =>
       downloadFile(`/reports/leasing-annuelle/${annee}`, `leasing-annuelle-${annee}.pdf`),
     leasingSemestrielle: (annee: string, semestre: 1 | 2) =>

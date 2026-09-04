@@ -30,6 +30,8 @@ export type LeasingMensuelleHtmlView = {
     edition: string;
     client: string;
     footerBrand: string;
+    prixNb: number;
+    prixCouleur: number;
   };
   releves: Array<{
     imprimante: string;
@@ -42,6 +44,15 @@ export type LeasingMensuelleHtmlView = {
     diffN: number;
     diffC: number;
   }>;
+  /** Détail facturation : copies hors quota × tarifs (0 F si sous quota). */
+  facturation: FacturationRow[];
+  totauxFacturation: {
+    factN: number;
+    factC: number;
+    montantN: number;
+    montantC: number;
+    montantTotal: number;
+  };
   depassement: MargeRow[];
   sousMarge: MargeRow[];
   cumulMargeN: number;
@@ -66,6 +77,25 @@ type MargeRow = {
   consoC: number;
   margeRestanteN: number;
   margeRestanteC: number;
+};
+
+type FacturationRow = {
+  imprimante: string;
+  localisation: string;
+  code: string;
+  consoN: number;
+  consoC: number;
+  quotaN: number;
+  quotaC: number;
+  /** Copies noir hors quota (0 si sous quota). */
+  factN: number;
+  /** Copies couleur hors quota (0 si sous quota). */
+  factC: number;
+  montantN: number;
+  montantC: number;
+  /** Montant ligne = 0 F si aucun dépassement. */
+  montantTotal: number;
+  sousQuota: boolean;
 };
 
 type AnnexeRow = {
@@ -101,6 +131,44 @@ export function mapToHtmlView(data: LeasingMensuelleHtmlInput): LeasingMensuelle
       diffC: r.deltaC,
     };
   });
+
+  const prixNb = data.prixNb ?? data.facture?.prixNb ?? 0;
+  const prixCouleur = data.prixCouleur ?? data.facture?.prixCouleur ?? 0;
+
+  const facturation: FacturationRow[] = data.releves.map((r) => {
+    const factN = Math.max(0, r.factN ?? 0);
+    const factC = Math.max(0, r.factC ?? 0);
+    const montantN = factN * prixNb;
+    const montantC = factC * prixCouleur;
+    const montantTotal = montantN + montantC;
+    return {
+      imprimante: r.imprimante,
+      localisation: r.localisation,
+      code: r.code,
+      consoN: r.deltaN,
+      consoC: r.deltaC,
+      quotaN: r.quotaNoirDispo ?? 1000,
+      quotaC: r.quotaCouleurDispo ?? 2000,
+      factN,
+      factC,
+      montantN,
+      montantC,
+      montantTotal,
+      sousQuota: factN === 0 && factC === 0,
+    };
+  });
+
+  const totauxFacturation = facturation.reduce(
+    (acc, r) => {
+      acc.factN += r.factN;
+      acc.factC += r.factC;
+      acc.montantN += r.montantN;
+      acc.montantC += r.montantC;
+      acc.montantTotal += r.montantTotal;
+      return acc;
+    },
+    { factN: 0, factC: 0, montantN: 0, montantC: 0, montantTotal: 0 },
+  );
 
   const margeRows: MargeRow[] = data.releves.map((r) => {
     const quotaN = r.quotaNoirDispo ?? 1000;
@@ -208,8 +276,12 @@ export function mapToHtmlView(data: LeasingMensuelleHtmlInput): LeasingMensuelle
       edition: fmtEdition(new Date()),
       client: data.clientNom?.trim() || 'Client',
       footerBrand: 'Ivoprest',
+      prixNb,
+      prixCouleur,
     },
     releves,
+    facturation,
+    totauxFacturation,
     depassement,
     sousMarge,
     cumulMargeN,
@@ -228,6 +300,8 @@ export function sampleHtmlView(): LeasingMensuelleHtmlView {
     clientNom: "Direction des Systèmes d'Information",
     campagne: null,
     facture: null,
+    prixNb: 15,
+    prixCouleur: 45,
     releves: [
       {
         code: 'REL-0012',
@@ -381,4 +455,9 @@ export function fmtNum(n: number) {
   const abs = Math.abs(n);
   const formatted = abs.toLocaleString('fr-FR');
   return n < 0 ? `−${formatted}` : formatted;
+}
+
+/** Montants en francs CFA (XOF), sans décimales. */
+export function fmtMoney(n: number) {
+  return `${Math.round(n).toLocaleString('fr-FR')} F`;
 }

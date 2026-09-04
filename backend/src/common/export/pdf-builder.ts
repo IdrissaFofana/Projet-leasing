@@ -193,58 +193,30 @@ export async function buildEsayPdf(input: PdfTableInput): Promise<Buffer> {
     const totalColW = input.columns.reduce((s, c) => s + c.width, 0);
     const scale = usableW / totalColW;
     const cols = input.columns.map((c) => ({ ...c, width: c.width * scale }));
-    const rowH = 18;
-    const headerH = 22;
+    const rowH = 22;
+    const headerH = 26;
     const bottomLimit = doc.page.height - 48;
     const line = esayHex('line');
-    const inkSoftRow = '#FAFBFC';
+    const inkSoftRow = '#F4F8F4';
+    const headerBg = esayHex('navy');
 
     const drawTableHeader = () => {
-      // White header band (like .data-table th)
-      doc.rect(margin, y, usableW, headerH).fill('#FFFFFF');
+      doc.rect(margin, y, usableW, headerH).fill(headerBg);
 
       let x = margin;
       cols.forEach((col) => {
         doc
-          .fillColor(esayHex('blue'))
+          .fillColor('#FFFFFF')
           .font('Helvetica-Bold')
-          .fontSize(6.8)
-          .text(col.header.toUpperCase(), x + 4, y + 7, {
-            width: col.width - 8,
+          .fontSize(8)
+          .text(col.header.toUpperCase(), x + 5, y + 8, {
+            width: col.width - 10,
             align: col.align ?? 'left',
-            characterSpacing: 0.6,
+            characterSpacing: 0.4,
             lineBreak: false,
           });
         x += col.width;
       });
-
-      // Bottom border mix blue + line
-      doc
-        .moveTo(margin, y + headerH)
-        .lineTo(margin + usableW, y + headerH)
-        .strokeColor(esayHex('blue'))
-        .lineWidth(0.9)
-        .stroke();
-
-      // Outer box top/sides start
-      doc
-        .moveTo(margin, y)
-        .lineTo(margin + usableW, y)
-        .strokeColor(line)
-        .lineWidth(0.5)
-        .stroke();
-      doc
-        .moveTo(margin, y)
-        .lineTo(margin, y + headerH)
-        .strokeColor(line)
-        .lineWidth(0.5)
-        .stroke();
-      doc
-        .moveTo(margin + usableW, y)
-        .lineTo(margin + usableW, y + headerH)
-        .strokeColor(line)
-        .lineWidth(0.5)
-        .stroke();
 
       y += headerH;
     };
@@ -257,19 +229,7 @@ export async function buildEsayPdf(input: PdfTableInput): Promise<Buffer> {
         .moveTo(margin, rowTop + h)
         .lineTo(margin + usableW, rowTop + h)
         .strokeColor(line)
-        .lineWidth(0.4)
-        .stroke();
-      doc
-        .moveTo(margin, rowTop)
-        .lineTo(margin, rowTop + h)
-        .strokeColor(line)
-        .lineWidth(0.4)
-        .stroke();
-      doc
-        .moveTo(margin + usableW, rowTop)
-        .lineTo(margin + usableW, rowTop + h)
-        .strokeColor(line)
-        .lineWidth(0.4)
+        .lineWidth(0.45)
         .stroke();
     };
 
@@ -292,9 +252,9 @@ export async function buildEsayPdf(input: PdfTableInput): Promise<Buffer> {
         doc
           .fillColor(esayHex('ink'))
           .font('Helvetica')
-          .fontSize(7.5)
-          .text(val, x + 4, rowTop + 5, {
-            width: col.width - 8,
+          .fontSize(9)
+          .text(val, x + 5, rowTop + 6, {
+            width: col.width - 10,
             align: col.align ?? (typeof row[col.key] === 'number' ? 'right' : 'left'),
             lineBreak: false,
           });
@@ -308,7 +268,7 @@ export async function buildEsayPdf(input: PdfTableInput): Promise<Buffer> {
       doc
         .fillColor(esayHex('muted'))
         .font('Helvetica-Oblique')
-        .fontSize(9)
+        .fontSize(10)
         .text('Aucune donnée à exporter', margin, y + 14);
     }
 

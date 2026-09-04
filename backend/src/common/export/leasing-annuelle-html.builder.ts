@@ -69,8 +69,10 @@ function renderConso(view: LeasingAnnuelleHtmlView, logo: string, page: number) 
           .join('');
   const body = `<div class="table-wrap"><table class="data-table">
     <thead><tr>
-      <th>Copieur</th><th>Localisation</th><th>Mois</th>
-      <th>Conso N</th><th>Conso C</th><th>Fact. N</th><th>Fact. C</th><th>Dépass.</th>
+      <th>Copieur</th><th>Localisation</th><th class="center">Mois</th>
+      <th class="num">Conso N</th><th class="num">Conso C</th>
+      <th class="num">Fact. N</th><th class="num">Fact. C</th>
+      <th class="center">Dépass.</th>
     </tr></thead>
     <tbody>${rows}</tbody>
   </table></div>`;

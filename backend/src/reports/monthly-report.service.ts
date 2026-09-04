@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-import { Prisma } from '@prisma/client';
+import { Prisma, TypeTarif } from '@prisma/client';
 
 import {
 
@@ -11,6 +11,8 @@ import {
   writeLeasingMensuelleHtmlSampleFile,
 
 } from '../common/export/leasing-mensuelle-html.builder';
+
+import { buildFacturationMensuelleHtmlPdf } from '../common/export/facturation-mensuelle-html.builder';
 
 import {
 
@@ -120,6 +122,46 @@ export class MonthlyReportService {
 
 
 
+  async generateFacturationMensuelle(mois: string) {
+
+    if (!/^\d{4}-\d{2}$/.test(mois)) {
+
+      throw new BadRequestException('Mois invalide (attendu YYYY-MM)');
+
+    }
+
+
+
+    const data = await this.loadData(mois);
+
+    if (data.releves.length === 0) {
+
+      throw new BadRequestException(
+
+        `Aucun relevé pour le rapport facturation ${mois}`,
+
+      );
+
+    }
+
+
+
+    const buffer = await buildFacturationMensuelleHtmlPdf(data);
+
+    return {
+
+      filename: `facturation-mensuelle-${mois}.pdf`,
+
+      mime: 'application/pdf',
+
+      buffer,
+
+    };
+
+  }
+
+
+
   private async loadData(mois: string): Promise<LeasingMensuelleReportData & { clientNom?: string }> {
 
     const [y, m] = mois.split('-').map(Number);
@@ -130,7 +172,7 @@ export class MonthlyReportService {
 
 
 
-    const [campagneRow, releves, facture, maintenances, client] = await Promise.all([
+    const [campagneRow, releves, facture, maintenances, client, tarifs] = await Promise.all([
 
       this.prisma.campagneSaisie.findUnique({
 
@@ -204,6 +246,14 @@ export class MonthlyReportService {
 
       }),
 
+      this.prisma.tarifLeasing.findMany({
+
+        where: { actif: true },
+
+        select: { type: true, prixUnitaire: true },
+
+      }),
+
     ]);
 
 
@@ -256,11 +306,23 @@ export class MonthlyReportService {
 
 
 
+    const tarifMap = new Map(tarifs.map((t) => [t.type, Number(t.prixUnitaire)]));
+    const prixNb =
+      facture != null ? Number(facture.prixNb) : (tarifMap.get(TypeTarif.COPIE_NB) ?? 0);
+    const prixCouleur =
+      facture != null
+        ? Number(facture.prixCouleur)
+        : (tarifMap.get(TypeTarif.COPIE_COULEUR) ?? 0);
+
     return {
 
       mois,
 
       clientNom: client?.nom,
+
+      prixNb,
+
+      prixCouleur,
 
       campagne,
 
