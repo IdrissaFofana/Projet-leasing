@@ -179,9 +179,15 @@ export function mapToHtmlView(data: LeasingMensuelleHtmlInput): LeasingMensuelle
     const consoC = r.deltaC;
     const factN = Math.max(0, r.factN ?? 0);
     const factC = Math.max(0, r.factC ?? 0);
-    // Affichage : conso − quota (négatif = dépassement). Le report DB est toujours ≥ 0.
-    const margeRestanteN = quotaN - consoN;
-    const margeRestanteC = quotaC - consoC;
+    // Reliquat réel (report vers mois suivant) — toujours ≥ 0, jamais −Fact.
+    const margeRestanteN =
+      r.quotaNoirReport != null
+        ? Math.max(0, r.quotaNoirReport)
+        : Math.max(0, quotaN - consoN);
+    const margeRestanteC =
+      r.quotaCouleurReport != null
+        ? Math.max(0, r.quotaCouleurReport)
+        : Math.max(0, quotaC - consoC);
     return {
       imprimante: r.imprimante,
       localisation: r.localisation,
@@ -382,8 +388,8 @@ export function sampleHtmlView(): LeasingMensuelleHtmlView {
         ancienTotalCouleur: 6,
         quotaNoirDispo: 1000,
         quotaCouleurDispo: 2000,
-        quotaNoirReport: -347,
-        quotaCouleurReport: -17,
+        quotaNoirReport: 0,
+        quotaCouleurReport: 0,
         attachment: null,
       },
     ],

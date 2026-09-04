@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { buildEsayWorkbook, type ExcelSheetInput } from '../common/export/excel-builder';
-import { buildEsayPdf, type PdfTableInput } from '../common/export/pdf-builder';
+import type { PdfTableInput } from '../common/export/pdf-builder';
+import { buildRelevesExportPdf } from '../common/export/releves-export-html.builder';
+import { PrismaService } from '../prisma/prisma.service';
 import { ReadingsService } from './readings.service';
 
 export type ExportView = 'liste' | 'mensuelle' | 'controle' | 'matrice';
@@ -8,7 +10,10 @@ export type ExportFormat = 'xlsx' | 'pdf';
 
 @Injectable()
 export class ReadingsExportService {
-  constructor(private readonly readings: ReadingsService) {}
+  constructor(
+    private readonly readings: ReadingsService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   async export(params: {
     format: ExportFormat;
@@ -33,7 +38,31 @@ export class ReadingsExportService {
       };
     }
 
-    const buffer = await buildEsayPdf(sheet.pdf);
+    const client = await this.prisma.client.findFirst({
+      orderBy: { nom: 'asc' },
+      select: { nom: true },
+    });
+
+    const buffer = await buildRelevesExportPdf({
+      title: sheet.pdf.title,
+      subtitle: sheet.pdf.subtitle ?? '',
+      note: sheet.note,
+      sectionTag: sheet.sectionTag,
+      sectionTitle: sheet.sectionTitle,
+      client: client?.nom,
+      reference: sheet.reference,
+      mois: sheet.mois,
+      moisDebut: sheet.moisDebut,
+      moisFin: sheet.moisFin,
+      meta: sheet.pdf.meta,
+      columns: sheet.pdf.columns.map((c) => ({
+        key: c.key,
+        header: c.header,
+        align: c.align,
+      })),
+      rows: sheet.pdf.rows,
+    });
+
     return {
       filename: `${sheet.baseName}.pdf`,
       mime: 'application/pdf',
@@ -49,7 +78,18 @@ export class ReadingsExportService {
       moisFin?: string;
       metric?: 'compteurs' | 'delta' | 'facturer';
     },
-  ): Promise<{ baseName: string; excel: ExcelSheetInput; pdf: PdfTableInput }> {
+  ): Promise<{
+    baseName: string;
+    excel: ExcelSheetInput;
+    pdf: PdfTableInput;
+    reference: string;
+    note?: string;
+    sectionTag?: string;
+    sectionTitle?: string;
+    mois?: string;
+    moisDebut?: string;
+    moisFin?: string;
+  }> {
     if (view === 'liste') {
       const mois = params.mois ?? this.currentMois();
       const rows = await this.readings.findAll({ mois });
@@ -91,17 +131,28 @@ export class ReadingsExportService {
       ];
       return {
         baseName: `releves-liste-${mois}`,
+        reference: `REL-LISTE-${mois}`,
+        mois,
+        sectionTag: 'Relevés',
+        sectionTitle: 'Liste des relevés compteurs',
+        note: 'Liste mensuelle des relevés avec quotas (1 000 N / 2 000 C + report) et copies facturables.',
         excel: {
           title: `Relevés compteurs — ${mois}`,
           subtitle: 'Liste mensuelle avec quotas (1 000 N / 2 000 C + report)',
-          meta: [{ label: 'Mois', value: mois }, { label: 'Lignes', value: String(mapped.length) }],
+          meta: [
+            { label: 'Mois', value: mois },
+            { label: 'Lignes', value: String(mapped.length) },
+          ],
           columns,
           rows: mapped,
         },
         pdf: {
-          title: `Relevés — ${mois}`,
-          subtitle: 'Liste avec quotas et copies facturables',
-          meta: [{ label: 'Mois', value: mois }],
+          title: 'Liste des relevés',
+          subtitle: 'Liste mensuelle avec quotas et copies facturables',
+          meta: [
+            { label: 'Mois', value: mois },
+            { label: 'Lignes', value: String(mapped.length) },
+          ],
           landscape: true,
           columns: columns.map((c) => ({
             key: c.key,
@@ -147,6 +198,11 @@ export class ReadingsExportService {
       ];
       return {
         baseName: `releves-mensuelle-${mois}`,
+        reference: `REL-MENS-${mois}`,
+        mois,
+        sectionTag: 'Vue mensuelle',
+        sectionTitle: 'Relevés par imprimante',
+        note: `Totaux Δ N ${data.totaux.deltaNoir} · Δ C ${data.totaux.deltaCouleur}.`,
         excel: {
           title: `Vue mensuelle — ${mois}`,
           subtitle: `Totaux Δ N ${data.totaux.deltaNoir} · Δ C ${data.totaux.deltaCouleur}`,
@@ -158,8 +214,12 @@ export class ReadingsExportService {
           rows: mapped,
         },
         pdf: {
-          title: `Vue mensuelle — ${mois}`,
+          title: 'Vue mensuelle des relevés',
           subtitle: `Δ N ${data.totaux.deltaNoir} · Δ C ${data.totaux.deltaCouleur}`,
+          meta: [
+            { label: 'Machines', value: String(data.totaux.nbImprimantes) },
+            { label: 'Vs', value: data.moisPrecedent ?? '—' },
+          ],
           landscape: true,
           columns: columns.map((c) => ({
             key: c.key,
@@ -203,6 +263,11 @@ export class ReadingsExportService {
       ];
       return {
         baseName: `controle-releves-${mois}`,
+        reference: `REL-CTRL-${mois}`,
+        mois,
+        sectionTag: 'Contrôle',
+        sectionTitle: 'File de contrôle des relevés',
+        note: `File d'anomalies et écarts — ${data.resume.aTraiter ?? 0} à traiter · ${data.resume.anomalies} anomalie(s).`,
         excel: {
           title: `Contrôle relevés — ${mois}`,
           subtitle: `${data.resume.aTraiter ?? 0} à traiter · ${data.resume.anomalies} anomalie(s)`,
@@ -214,8 +279,13 @@ export class ReadingsExportService {
           rows: mapped,
         },
         pdf: {
-          title: `Contrôle relevés — ${mois}`,
-          subtitle: `File d'anomalies et écarts 301`,
+          title: 'Contrôle des relevés',
+          subtitle: `File d'anomalies et écarts`,
+          meta: [
+            { label: 'Total', value: String(data.resume.total) },
+            { label: 'À traiter', value: String(data.resume.aTraiter ?? 0) },
+            { label: 'Anomalies', value: String(data.resume.anomalies) },
+          ],
           landscape: true,
           columns: columns.map((c) => ({
             key: c.key,
@@ -256,7 +326,6 @@ export class ReadingsExportService {
         return `${c.totalNoir} / ${c.totalCouleur}`;
       };
 
-      // Une colonne par mois — même logique que l’UI matrice
       const mapped = data.lignes.map((l) => {
         const row: Record<string, string | number | null> = {
           imprimante: l.imprimante.code,
@@ -283,6 +352,12 @@ export class ReadingsExportService {
 
       return {
         baseName: `matrice-releves-${moisDebut}_${moisFin}`,
+        reference: `REL-MAT-${moisDebut}_${moisFin}`,
+        moisDebut,
+        moisFin,
+        sectionTag: 'Matrice',
+        sectionTitle: 'Parc × mois',
+        note: `Quota base ${data.quotaBase.noir} N / ${data.quotaBase.couleur} C · affichage ${metricLabel}.`,
         excel: {
           title: `Matrice parc — ${moisDebut} → ${moisFin}`,
           subtitle: `Quota base ${data.quotaBase.noir} N / ${data.quotaBase.couleur} C · ${data.lignes.length} imprimantes`,
@@ -294,8 +369,13 @@ export class ReadingsExportService {
           rows: mapped,
         },
         pdf: {
-          title: `Matrice parc — ${moisDebut} → ${moisFin}`,
+          title: 'Matrice parc des relevés',
           subtitle: `Parc × mois — ${metricLabel}`,
+          meta: [
+            { label: 'Période', value: `${moisDebut} → ${moisFin}` },
+            { label: 'Affichage', value: metricLabel },
+            { label: 'Imprimantes', value: String(data.lignes.length) },
+          ],
           landscape: true,
           columns: [
             { key: 'imprimante', header: 'Imprimante', width: 58 },

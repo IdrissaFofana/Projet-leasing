@@ -278,15 +278,13 @@ function renderMargeTable(
         <th class="num">Quota N</th><th class="num">Quota C</th>
         <th class="num">Conso N</th><th class="num">Conso C</th>
         <th class="num">Fact. N</th><th class="num">Fact. C</th>
-        <th class="num">Marge rest. N</th><th class="num">Marge rest. C</th>
+        <th class="num">Reliquat N</th><th class="num">Reliquat C</th>
         <th>Statut</th>
       </tr>
     </thead>
     <tbody>
       ${rows
         .map((r) => {
-          const negN = r.margeRestanteN < 0;
-          const negC = r.margeRestanteC < 0;
           const badge =
             showBadge === 'danger'
               ? '<span class="badge badge--danger">Dépassement</span>'
@@ -300,8 +298,8 @@ function renderMargeTable(
             <td class="num">${fmtNum(r.consoC)}</td>
             <td class="num">${fmtNum(r.factN)}</td>
             <td class="num">${fmtNum(r.factC)}</td>
-            <td class="num ${negN ? 'val-negative' : 'val-positive'}">${fmtNum(r.margeRestanteN)}</td>
-            <td class="num ${negC ? 'val-negative' : 'val-positive'}">${fmtNum(r.margeRestanteC)}</td>
+            <td class="num val-positive">${fmtNum(r.margeRestanteN)}</td>
+            <td class="num val-positive">${fmtNum(r.margeRestanteC)}</td>
             <td>${badge}</td>
           </tr>`;
         })
@@ -317,7 +315,10 @@ function renderDepassement(view: LeasingMensuelleHtmlView, logoDataUri: string, 
       <div class="content-block">
         <div class="section-tag">Section 3</div>
         <h2 class="section-title">Copieurs ayant dépassé la marge incluse</h2>
-        <p class="section-desc">Quota mensuel dépassé — copies hors quota à facturer (même critère que Fact. N / Fact. C).</p>
+        <p class="section-desc">
+          Copies hors quota à facturer (Fact. N / Fact. C). Reliquat = marge non consommée reportée au mois suivant
+          (0 en cas de dépassement).
+        </p>
         ${renderMargeTable(view.depassement, 'Aucun dépassement ce mois.', 'danger')}
       </div>
     </div>
@@ -329,7 +330,7 @@ function renderSousMarge(view: LeasingMensuelleHtmlView, logoDataUri: string, pa
   const cumul =
     view.sousMarge.length > 0
       ? `<div class="summary-box">
-          Cumul marge restante (parc sous quota) :
+          Cumul reliquat (parc sous quota) :
           <span>N ${fmtNum(view.cumulMargeN)}</span> · <span>Couleur ${fmtNum(view.cumulMargeC)}</span>
         </div>`
       : '';
@@ -339,7 +340,7 @@ function renderSousMarge(view: LeasingMensuelleHtmlView, logoDataUri: string, pa
       <div class="content-block">
         <div class="section-tag">Section 4</div>
         <h2 class="section-title">Copieurs n'ayant pas dépassé la marge incluse</h2>
-        <p class="section-desc">Marge restante par copieur et cumul du parc sous quota.</p>
+        <p class="section-desc">Reliquat de quota par copieur (reporté au mois suivant) et cumul du parc sous quota.</p>
         ${renderMargeTable(view.sousMarge, 'Aucun copieur sous quota ce mois.', 'ok')}
         ${cumul}
       </div>

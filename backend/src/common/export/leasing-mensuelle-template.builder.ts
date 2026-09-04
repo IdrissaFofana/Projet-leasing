@@ -100,8 +100,8 @@ const SAMPLE = {
       quotaC: 2000,
       consoN: 1347,
       consoC: 2017,
-      margeRestanteN: -347,
-      margeRestanteC: -17,
+      margeRestanteN: 0,
+      margeRestanteC: 0,
     },
   ] satisfies MargeLigne[],
   sousMarge: [
@@ -587,8 +587,8 @@ export async function buildLeasingMensuelleTemplatePdf(
         { key: 'quotaC', header: 'Quota C', width: 44, align: 'right' },
         { key: 'consoN', header: 'Conso N', width: 44, align: 'right' },
         { key: 'consoC', header: 'Conso C', width: 44, align: 'right' },
-        { key: 'margeN', header: 'Marge rest. N', width: 52, align: 'right' },
-        { key: 'margeC', header: 'Marge rest. C', width: 52, align: 'right' },
+        { key: 'margeN', header: 'Reliquat N', width: 52, align: 'right' },
+        { key: 'margeC', header: 'Reliquat C', width: 52, align: 'right' },
       ],
       SAMPLE.depassement.map((r) => ({
         imprimante: r.imprimante,
@@ -628,8 +628,8 @@ export async function buildLeasingMensuelleTemplatePdf(
         { key: 'quotaC', header: 'Quota C', width: 44, align: 'right' },
         { key: 'consoN', header: 'Conso N', width: 44, align: 'right' },
         { key: 'consoC', header: 'Conso C', width: 44, align: 'right' },
-        { key: 'margeN', header: 'Marge rest. N', width: 52, align: 'right' },
-        { key: 'margeC', header: 'Marge rest. C', width: 52, align: 'right' },
+        { key: 'margeN', header: 'Reliquat N', width: 52, align: 'right' },
+        { key: 'margeC', header: 'Reliquat C', width: 52, align: 'right' },
       ],
       SAMPLE.sousMarge.map((r) => ({
         imprimante: r.imprimante,
